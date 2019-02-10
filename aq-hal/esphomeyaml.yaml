@@ -1,0 +1,3 @@
+  name: squirtal
+  platform: ESP8266
+  board: nodemcuv2

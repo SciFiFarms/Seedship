@@ -1,0 +1,8 @@
+    platform: dht
+    model: DHT22
+    pin: D4
+    temperature:
+      name: "Your Butt Temperature"
+    humidity:
+      name: "Your Butt Humidity"
+    update_interval: 5s
