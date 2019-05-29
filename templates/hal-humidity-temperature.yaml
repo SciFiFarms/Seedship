@@ -1,0 +1,28 @@
+#TOUCHED
+substitutions:
+  device_name: !gen_device_name
+  mqtt_username: !gen_mqtt_username
+  mqtt_password: !gen_mqtt_password
+
+wifi: !include shared/wifi.yaml
+mqtt: !include shared/mqtt.yaml
+
+esphome: !include templates/esphome-nodemcuv2.yaml
+
+i2c:
+  sda: D5
+  scl: D6 
+#switch: !include_dir_list aq-hal/switches
+# TODO: Change this to be a selected set of sensors. 
+sensor: #!include_dir_list aq-hal/sensors
+  - !include templates/sensors/dht.yaml
+    
+# Enable logging
+logger:
+# Enable Home Assistant API
+# Can't use api AND mqtt. 
+#api:
+# Enable Over the Air Updates
+ota:
+# Taken from https://esphomelib.com/esphomeyaml/components/web_server.html?highlight=webserver
+# web_server:

@@ -1,0 +1,4 @@
+#  platform: gpio
+#  pin: D6
+#  name: ${device_name}_switch
+#  

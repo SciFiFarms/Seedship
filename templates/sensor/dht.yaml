@@ -1,0 +1,21 @@
+    platform: dht
+    model: DHT22
+    pin: 
+      number: D1
+    temperature:
+      name: ${device_name}_temperature
+      expire_after: 75s
+      filters:
+          - or:
+                  - delta: 1
+                  - throttle: 30s
+          - throttle: 0.5s
+    humidity:
+      name: ${device_name}_humidity
+      expire_after: 75s
+      filters:
+          - or:
+                  - delta: 1
+                  - throttle: 30s
+          - throttle: 0.5s
+    update_interval: 1s

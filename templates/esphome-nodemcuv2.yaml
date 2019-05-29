@@ -1,0 +1,6 @@
+  name: $device_name 
+  platform: ESP8266
+  board: nodemcuv2
+  build_path: .builds/$device_name/
+  #esphomelib_version:
+  #  local: /esphome-core 
