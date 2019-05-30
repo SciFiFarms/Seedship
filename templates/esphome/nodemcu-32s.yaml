@@ -1,0 +1,7 @@
+  name: $device_name 
+  platform: ESP32
+  board: nodemcu-32s
+  build_path: .builds/$device_name/
+
+  #esphomelib_version:
+  #  local: /esphome-core 

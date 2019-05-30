@@ -7,7 +7,7 @@ substitutions:
 wifi: !include shared/wifi.yaml
 mqtt: !include templates/mqtt.yaml
 
-esphome: !include templates/esphome-nodemcuv2.yaml
+esphome: !include templates/esphome/nodemcuv2.yaml
 
 i2c:
   sda: D5
