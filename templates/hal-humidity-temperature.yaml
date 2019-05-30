@@ -18,7 +18,7 @@ i2c:
 #switch: !include_dir_list aq-hal/switches
 # TODO: Change this to be a selected set of sensors. 
 sensor: #!include_dir_list aq-hal/sensors
-  - !include templates/sensor/dht.yaml
+  - !include templates/sensors/dht.yaml
     
 # Enable logging
 logger:
@@ -27,5 +27,5 @@ logger:
 #api:
 # Enable Over the Air Updates
 ota:
-# Taken from https://esphomelib.com/esphomeyaml/components/web_server.html?highlight=webserver
+# Taken from https://esphome.io/components/web_server.html
 # web_server:

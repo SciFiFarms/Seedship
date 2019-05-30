@@ -28,5 +28,5 @@ logger:
 #api:
 # Enable Over the Air Updates
 ota:
-# Taken from https://esphomelib.com/esphomeyaml/components/web_server.html?highlight=webserver
+# Taken from https://esphome.io/components/web_server.html
 # web_server:
