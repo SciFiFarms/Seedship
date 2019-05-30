@@ -18,7 +18,7 @@ i2c:
 #switch: !include_dir_list aq-hal/switches
 # TODO: Change this to be a selected set of sensors. 
 sensor: #!include_dir_list aq-hal/sensors
-  - !include templates/sensors/dht.yaml
+  - !include templates/sensor/dht.yaml
     
 # Enable logging
 logger:
