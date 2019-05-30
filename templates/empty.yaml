@@ -10,7 +10,7 @@ substitutions:
 wifi: !include secrets/wifi.yaml
 mqtt: !include templates/mqtt/mqtt.yaml
 
-esphomeyaml: !include templates/esphome/nodemcuv2.yaml
+esphome: !include templates/esphome/nodemcuv2.yaml
     
 # Enable logging
 logger:
