@@ -1,0 +1,18 @@
+# This is a empty.yaml template.
+# If hard links are used, changes made here will be applied to that file.
+# You can us the following to find all other templated files:
+# find ./ -xdev -samefile templates/empty.yaml 
+substitutions:
+  device_name: !gen_device_name
+  mqtt_username: !gen_mqtt_username
+  mqtt_password: !gen_mqtt_password
+
+wifi: !include shared/wifi.yaml
+mqtt: !include templates/mqtt/mqtt.yaml
+
+esphomeyaml: !include templates/esphome/nodemcuv2.yaml
+    
+# Enable logging
+logger:
+# Enable Over the Air Updates
+ota:
