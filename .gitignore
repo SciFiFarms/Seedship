@@ -10,5 +10,6 @@
 /secrets.yaml
 # TODO: Prevent the ca file from being created.
 /ca
+/secrets/
 
 /*.yaml

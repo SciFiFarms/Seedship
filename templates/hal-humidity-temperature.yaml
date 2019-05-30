@@ -7,7 +7,7 @@ substitutions:
   mqtt_username: !gen_mqtt_username
   mqtt_password: !gen_mqtt_password
 
-wifi: !include shared/wifi.yaml
+wifi: !include secrets/wifi.yaml
 mqtt: !include templates/mqtt/mqtt.yaml
 
 esphome: !include templates/esphome/nodemcuv2.yaml
