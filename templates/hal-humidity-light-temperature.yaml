@@ -1,4 +1,7 @@
-# TOUCHED
+# This is a hal-humidity-light-temperature.yaml template.
+# If hard links are used, changes made here will be applied to that file.
+# You can us the following to find all other templated files:
+# find ./ -xdev -samefile templates/hal-humidity-light-temperature.yaml 
 substitutions:
   device_name: !gen_device_name
   mqtt_username: !gen_mqtt_username
