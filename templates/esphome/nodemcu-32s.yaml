@@ -1,7 +1,9 @@
   name: $device_name 
   platform: ESP32
   board: nodemcu-32s
-  build_path: .builds/$device_name/
+  # If it builds in the /config folder like is default, then there arise
+  # conflicts between the server and my machine. /tmp/esphome-build is a volume.
+  build_path: /tmp/esphome-build/$device_name/
 
   #esphomelib_version:
   #  local: /esphome-core 
