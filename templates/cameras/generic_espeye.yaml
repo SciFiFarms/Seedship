@@ -4,24 +4,25 @@
 # find ./ -xdev -samefile templates/espeye.yaml 
 substitutions:
   device_name: !gen_device_name
-  mqtt_username: !gen_mqtt_username
-  mqtt_password: !gen_mqtt_password
+  #mqtt_username: !gen_mqtt_username
+  #mqtt_password: !gen_mqtt_password
 
 wifi: !include secrets/wifi.yaml
 #mqtt: !include templates/mqtt/mqtt.yaml
 api: #esp32 requires the api :/.
 
-esphome: !include templates/esphome/esp-wrover-kit.yaml
+esphome: !include templates/esphome/esp32cam.yaml
 
 # Documentation at https://esphome.io/components/esp32_camera.html
 # A bit more on the esp-eye. Check the comments: https://hackaday.com/2019/02/02/cheap-esp32-webcam/
+
 esp32_camera:
   name: $device_name
 
   # Image settings
   max_framerate: 1 fps
   # It doesn't seem to matter what idle_framerate is set to?
-  idle_framerate: 1 fps
+  #idle_framerate: 0 fps
   resolution: 640x480
 
   external_clock:
