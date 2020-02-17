@@ -10,9 +10,18 @@ substitutions:
 wifi: !include secrets/wifi.yaml
 mqtt: !include templates/mqtt/mqtt.yaml
 
-esphome: !include templates/esphome/nodemcuv2.yaml
+esphome: 
+  name: $device_name 
+  platform: ESP8266
+  #board: 
+  # If it builds in the /config folder like is default, then there arise
+  # conflicts between the server and my machine. /tmp/esphome-build is a volume.
+  build_path: /tmp/esphome-builds/$device_name/
+  board: esp01_1m
     
 # Enable logging
 logger:
 # Enable Over the Air Updates
 ota:
+web_server:
+  port: 80
