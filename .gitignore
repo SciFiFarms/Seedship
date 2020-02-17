@@ -11,5 +11,6 @@
 # TODO: Prevent the ca file from being created.
 /ca
 /secrets/
-
+/.stversions
+*.pyc
 /*.yaml
