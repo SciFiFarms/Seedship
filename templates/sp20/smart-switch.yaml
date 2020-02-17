@@ -17,10 +17,7 @@ logger:
 # Enable Over the Air Updates
 ota:
 
-esphome:
-  name: ${plug_name}
-  platform: ESP8266
-  board: esp8285
+esphome: !include templates/esphome/esp8285.yaml
 
 #api:
 
@@ -82,7 +79,7 @@ sensor:
     power:
       name: "${plug_name} Wattage"
       unit_of_measurement: W
-      id: "${plug_name} Wattage"
+      id: "${plug_name}_Wattage"
       expire_after: 75s
       filters:
         - or:

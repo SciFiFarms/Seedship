@@ -17,10 +17,7 @@ logger:
 # Enable Over the Air Updates
 ota:
 
-esphome:
-  name: ${plug_name}
-  platform: ESP8266
-  board: esp8285
+esphome: !include templates/esphome/esp8285.yaml
 
 #api:
 
