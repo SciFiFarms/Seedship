@@ -1,0 +1,107 @@
+# TODO: Convert to template
+substitutions:
+  device_name: !gen_device_name
+  plug_name: !gen_device_name
+  mqtt_username: !gen_mqtt_username
+  mqtt_password: !gen_mqtt_password
+  # Higher value gives lower watt readout
+  current_res: "0.00221"
+  # Lower value gives lower voltage readout
+  voltage_div: "960"
+
+wifi: !include secrets/wifi.yaml
+mqtt: !include templates/mqtt/mqtt.yaml
+
+# Enable logging
+logger:
+# Enable Over the Air Updates
+ota:
+
+esphome:
+  name: ${plug_name}
+  platform: ESP8266
+  board: esp8285
+
+#api:
+
+time:
+  - platform: sntp
+    id: sntp_time
+    timezone: America/Denver
+    
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: GPIO13
+      inverted: True
+    name: "${plug_name} Button"
+    on_press:
+      then:
+        - switch.toggle: relay
+    
+switch:
+- platform: gpio
+  name: "${plug_name} Relay"
+  pin: GPIO4
+  restore_mode: ALWAYS_ON
+  id: relay
+- platform: gpio
+  name: "${plug_name} LED Blue"
+  pin: GPIO2
+  inverted: True
+  restore_mode: ALWAYS_OFF
+- platform: gpio
+  name: "${plug_name} LED Red"
+  pin: GPIO0
+  inverted: True
+  restore_mode: ALWAYS_OFF
+sensor:
+  - platform: hlw8012
+    sel_pin:
+      number: GPIO12
+      inverted: True
+    cf_pin: GPIO05
+    cf1_pin: GPIO14
+    current_resistor: ${current_res}
+    voltage_divider: ${voltage_div}
+    current:
+      name: "${plug_name} Amperage"
+      unit_of_measurement: A
+      expire_after: 75s
+      filters:
+        - or:
+          - delta: 0.1
+          - throttle: 30s
+        - throttle: 0.01s
+    voltage:
+      name: "${plug_name} Voltage"
+      unit_of_measurement: V
+      expire_after: 75s
+      filters:
+        - throttle: 30s
+    power:
+      name: "${plug_name} Wattage"
+      unit_of_measurement: W
+      id: "${plug_name} Wattage"
+      expire_after: 75s
+      filters:
+        - or:
+          - delta: 2
+          - throttle: 30s
+        - throttle: 0.01s
+        #    window_size: 7
+        #    send_every: 2
+    change_mode_every: 8
+    update_interval: 100ms
+
+# - platform: total_daily_energy
+#    name: "${plug_name}_Total Daily Energy"
+#    power_id: "${plug_name}_Wattage"
+#    filters:
+        # Multiplication factor from W to kW is 0.001
+#        - multiply: 0.001
+#    unit_of_measurement: kWh
+      
+# Extra sensor to keep track of plug uptime
+  - platform: uptime
+    name: ${plug_name} Uptime Sensor
