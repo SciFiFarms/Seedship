@@ -11,7 +11,7 @@ mqtt: !include templates/mqtt/mqtt.yaml
 
 switch:
   - platform: gpio
-    name: "$device_name Relay 1
+    name: "$device_name Relay 1"
     pin: GPIO15
     id: relay1
   - platform: gpio
