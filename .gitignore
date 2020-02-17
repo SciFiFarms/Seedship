@@ -14,3 +14,4 @@
 /.stversions
 *.pyc
 /*.yaml
+/archives
