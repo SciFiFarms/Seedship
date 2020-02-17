@@ -1,0 +1,68 @@
+# This is a hal-humidity-temperature.yaml template.
+substitutions:
+  device_name: !gen_device_name
+  device_id: !gen_device_id
+  mqtt_username: !gen_mqtt_username
+  mqtt_password: !gen_mqtt_password
+
+esphome: !include templates/esphome/esp01_1m.yaml
+wifi: !include secrets/wifi.yaml
+mqtt: !include templates/mqtt/mqtt.yaml
+
+switch:
+  - platform: gpio
+    name: "$device_name Relay 1
+    pin: GPIO15
+    id: relay1
+  - platform: gpio
+    name: "$device_name Relay 2"
+    pin: GPIO5
+    id: relay2
+  - platform: gpio
+    name: "$device_name Relay 3"
+    pin: GPIO14
+    id: relay3
+  - platform: gpio
+    name: "$device_name Relay 4"
+    pin: GPIO12
+    id: relay4
+  - platform: gpio
+    name: "$device_name USB Power"
+    pin: GPIO4
+    id: relay5
+
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: GPIO13
+      mode: INPUT_PULLUP
+      inverted: False
+    name: "$device_name Button"
+    on_press:
+      - switch.toggle: relay1
+      - switch.toggle: relay2
+      - switch.toggle: relay3
+      - switch.toggle: relay4
+      #- switch.toggle: relay5
+
+  - platform: status
+    name: "$device_name Status"
+
+sensor:
+  - platform: wifi_signal
+    name: "$device_name WiFi Signal"
+    update_interval: 60s
+
+  - platform: uptime
+    name: "$device_name Uptime"
+
+text_sensor:
+  - platform: version
+    name: "$device_name ESPHome Version"  
+
+status_led:
+  pin:
+    number: GPIO2
+
+logger:
+ota:
