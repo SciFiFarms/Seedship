@@ -24,12 +24,10 @@ switch:
   - platform: gpio
     name: "${device_name} relay 1"
     pin: GPIO12
-    inverted: yes
     id: relay1
   - platform: gpio
     name: "${device_name} relay 2"
     pin: GPIO14
-    inverted: yes
     id: relay2
 
 binary_sensor:
