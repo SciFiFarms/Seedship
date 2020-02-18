@@ -1,0 +1,14 @@
+  name: $device_name 
+  platform: ESP32
+  board: esp-wrover-kit
+  # If it builds in the /config folder like is default, then there arise
+  # conflicts between the server and my machine. /tmp/esphome-build is a volume.
+  build_path: /tmp/esphome-build/$device_name/
+  #arduino_version: 1.0.4
+  #platformio_options:
+  #  upload_speed: 460800
+    # More info on why this is needed: https://community.platformio.org/t/esp-eye-devkit-board/7295/3
+    #build_flags: '-DBOARD_HAS_PSRAM -mfix-esp32-psram-cache-issue'
+
+  #esphomelib_version:
+  #  local: /esphome-core 

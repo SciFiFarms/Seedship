@@ -1,0 +1,33 @@
+# TODO: Convert to template
+substitutions:
+    device_name: !gen_device_name
+    mqtt_username: !gen_mqtt_username
+    mqtt_password: !gen_mqtt_password
+
+esphome: !include templates/esphome/nodemcuv2.yaml
+wifi: !include secrets/wifi.yaml
+mqtt: !include templates/mqtt/mqtt.yaml
+
+# Enable logging
+logger:
+ota:
+
+i2c:
+  sda: D2
+  scl: D1 
+  scan: False
+  frequency: 50kHz
+
+sensor:
+  - platform: scd30
+    co2:
+      name: "$device_name CO2"
+    #  #accuracy_decimals: 1
+    temperature:
+      name: "$device_name Temperature"
+    #  #accuracy_decimals: 2
+    humidity:
+      name: "$device_name Humidity"
+    #  #accuracy_decimals: 1
+    update_interval: 5s
+  #  automatic_self_calibration: true

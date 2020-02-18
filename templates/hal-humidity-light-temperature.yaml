@@ -1,0 +1,28 @@
+# This is a hal-humidity-light-temperature.yaml template.
+substitutions:
+  device_name: !gen_device_name
+  mqtt_username: !gen_mqtt_username
+  mqtt_password: !gen_mqtt_password
+
+wifi: !include secrets/wifi.yaml
+mqtt: !include templates/mqtt/mqtt.yaml
+
+esphome: !include templates/esphome/nodemcuv2.yaml
+
+i2c:
+  sda: D5
+  scl: D6 
+  
+sensor: 
+  - !include templates/sensor/dht.yaml
+  - !include templates/sensor/tsl2561.yaml
+    
+# Enable logging
+logger:
+# Enable Home Assistant API
+# Can't use api AND mqtt. 
+#api:
+# Enable Over the Air Updates
+ota:
+# Taken from https://esphome.io/components/web_server.html
+# web_server:

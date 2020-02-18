@@ -1,0 +1,72 @@
+# This is a hal-humidity-temperature.yaml template.
+substitutions:
+  device_name: !gen_device_name
+  device_id: !gen_device_id
+  mqtt_username: !gen_mqtt_username
+  mqtt_password: !gen_mqtt_password
+
+esphome: !include templates/esphome/esp01_1m.yaml
+wifi: !include secrets/wifi.yaml
+mqtt: !include templates/mqtt/mqtt.yaml
+
+switch:
+  - platform: gpio
+    name: "Seedship ${device_id} Shoot Zone Cooling"
+    pin: GPIO15
+    #inverted: yes
+    id: relay1
+  - platform: gpio
+    name: "Seedship ${device_id} Shoot Zone Dehumidification"
+    pin: GPIO5
+    #inverted: yes
+    id: relay2
+  - platform: gpio
+    name: "Seedship ${device_id} Shoot Zone Heating"
+    pin: GPIO14
+    #inverted: yes
+    id: relay3
+  - platform: gpio
+    name: "Seedship ${device_id} Shoot Zone Lighting"
+    pin: GPIO12
+    #inverted: yes
+    id: relay4
+  - platform: gpio
+    name: "Seedship ${device_id} Shoot Zone USB Power"
+    pin: GPIO4
+    id: relay5
+
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: GPIO13
+      mode: INPUT_PULLUP
+      inverted: False
+    name: "Seedship ${device_id} Shoot Zone Power Button"
+    on_press:
+      - switch.toggle: relay1
+      - switch.toggle: relay2
+      - switch.toggle: relay3
+      - switch.toggle: relay4
+      #- switch.toggle: relay5
+
+  - platform: status
+    name: "Seedship ${device_id} Shoot Zone Power Status"
+
+sensor:
+  - platform: wifi_signal
+    name: "Seedship ${device_id} Shoot Zone Power WiFi Signal"
+    update_interval: 60s
+
+  - platform: uptime
+    name: "Seedship ${device_id} Shoot Zone Power Uptime"
+
+text_sensor:
+  - platform: version
+    name: "Seedship ${device_id} Shoot Zone Power ESPHome Version"  
+
+status_led:
+  pin:
+    number: GPIO2
+
+logger:
+ota:

@@ -1,0 +1,61 @@
+# This is a hal-humidity-temperature.yaml template.
+substitutions:
+  device_name: !gen_device_name
+  mqtt_username: !gen_mqtt_username
+  mqtt_password: !gen_mqtt_password
+
+esphome: !include templates/esphome/esp01_1m.yaml
+wifi: !include secrets/wifi.yaml
+mqtt: !include templates/mqtt/mqtt.yaml
+
+sensor:
+  - platform: wifi_signal
+    name: "${device_name} WiFi signal"
+    update_interval: 60s
+
+  - platform: uptime
+    name: "${device_name} uptime"
+
+text_sensor:
+  - platform: version
+    name: "${device_name} ESPHome version"  
+
+switch:
+  - platform: gpio
+    name: "${device_name} relay 1"
+    pin: GPIO12
+    id: relay1
+  - platform: gpio
+    name: "${device_name} relay 2"
+    pin: GPIO14
+    id: relay2
+
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: GPIO13
+      mode: INPUT_PULLUP
+      inverted: False
+    name: "${device_name} button"
+    on_press:
+      - switch.turn_off: relay1
+      - switch.turn_off: relay2
+
+  - platform: status
+    name: "${device_name} Status"
+
+# There is another LED on pin 5.
+status_led:
+  pin:
+    number: GPIO04
+
+
+# Enable logging
+logger:
+# Enable Home Assistant API
+# Can't use api AND mqtt. 
+#api:
+# Enable Over the Air Updates
+ota:
+# Taken from https://esphome.io/components/web_server.html
+# web_server:

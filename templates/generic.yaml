@@ -1,0 +1,27 @@
+# This is a empty.yaml template.
+# If hard links are used, changes made here will be applied to that file.
+# You can us the following to find all other templated files:
+# find ./ -xdev -samefile templates/empty.yaml 
+substitutions:
+  device_name: !gen_device_name
+  mqtt_username: !gen_mqtt_username
+  mqtt_password: !gen_mqtt_password
+
+wifi: !include secrets/wifi.yaml
+mqtt: !include templates/mqtt/mqtt.yaml
+
+esphome: 
+  name: $device_name 
+  platform: ESP8266
+  #board: 
+  # If it builds in the /config folder like is default, then there arise
+  # conflicts between the server and my machine. /tmp/esphome-build is a volume.
+  build_path: /tmp/esphome-builds/$device_name/
+  board: esp01_1m
+    
+# Enable logging
+logger:
+# Enable Over the Air Updates
+ota:
+web_server:
+  port: 80

@@ -1,0 +1,8 @@
+  name: $device_name 
+  platform: ESP8266
+  board: nodemcuv2
+  # If it builds in the /config folder like is default, then there arise
+  # conflicts between the server and my machine. /tmp/esphome-build is a volume.
+  build_path: /tmp/esphome-builds/$device_name/
+  #esphomelib_version:
+  #  local: /esphome-core 

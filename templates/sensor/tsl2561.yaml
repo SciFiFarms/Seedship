@@ -1,0 +1,9 @@
+    platform: tsl2561
+    name: ${device_name} light sensor
+    update_interval: 0.5s
+    expire_after: 75s
+    filters:
+        - or:
+                - delta: 1
+                - throttle: 30s
+        - throttle: 0.01s

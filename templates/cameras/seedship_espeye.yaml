@@ -1,0 +1,41 @@
+# This is a empty.yaml template.
+# If hard links are used, changes made here will be applied to that file.
+# You can us the following to find all other templated files:
+# find ./ -xdev -samefile templates/espeye.yaml 
+substitutions:
+  device_name: !gen_device_name
+  #mqtt_username: !gen_mqtt_username
+  #mqtt_password: !gen_mqtt_password
+
+wifi: !include secrets/wifi.yaml
+#mqtt: !include templates/mqtt/mqtt.yaml
+api: #esp32 requires the api :/.
+
+esphome: !include templates/esphome/esp32cam.yaml
+
+# Documentation at https://esphome.io/components/esp32_camera.html
+# A bit more on the esp-eye. Check the comments: https://hackaday.com/2019/02/02/cheap-esp32-webcam/
+
+esp32_camera:
+  name: $device_name
+  external_clock:
+    pin: GPIO4
+    frequency: 20MHz
+  i2c_pins:
+    sda: GPIO18
+    scl: GPIO23
+  data_pins: [GPIO34, GPIO13, GPIO14, GPIO35, GPIO39, GPIO38, GPIO37, GPIO36]
+  vsync_pin: GPIO5
+  href_pin: GPIO27
+  pixel_clock_pin: GPIO25
+
+  # Image settings
+  max_framerate: 1 fps
+  # It doesn't seem to matter what idle_framerate is set to?
+  #idle_framerate: 0 fps
+  resolution: 640x480
+
+# Enable logging
+logger:
+# Enable Over the Air Updates
+ota:
