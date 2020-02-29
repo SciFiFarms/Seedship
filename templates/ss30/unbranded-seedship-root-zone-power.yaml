@@ -1,0 +1,73 @@
+# This is a hal-humidity-temperature.yaml template.
+substitutions:
+  device_name: !gen_device_name
+  device_id: !gen_device_id
+  mqtt_username: !gen_mqtt_username
+  mqtt_password: !gen_mqtt_password
+
+esphome: !include templates/esphome/esp01_1m.yaml
+wifi: !include secrets/wifi.yaml
+mqtt: !include templates/mqtt/mqtt.yaml
+
+switch:
+  - platform: gpio
+    name: "Seedship ${device_id} Root Zone Air Intake"
+    command_topic: seedships/$device_id/root_zone/air_intake
+    pin: GPIO15
+    id: relay1
+  - platform: gpio
+    name: "Seedship ${device_id} Root Zone Water Drain"
+    command_topic: seedships/$device_id/root_zone/water_drain
+    pin: GPIO5
+    id: relay2
+  - platform: gpio
+    name: "Seedship ${device_id} Root Zone Water Intake"
+    command_topic: seedships/$device_id/root_zone/water_intake
+    pin: GPIO14
+    id: relay3
+  - platform: gpio
+    name: "Seedship ${device_id} Root Zone Water Nozzle"
+    command_topic: seedships/$device_id/root_zone/water_nozzle
+    pin: GPIO12
+    id: relay4
+  - platform: gpio
+    name: "Seedship ${device_id} Root Zone USB"
+    command_topic: seedships/$device_id/root_zone/usb
+    pin: GPIO4
+    id: relay5
+
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: GPIO13
+      mode: INPUT_PULLUP
+      inverted: False
+    name: "Seedship ${device_id} Root Zone Power Button"
+    on_press:
+      - switch.toggle: relay1
+      - switch.toggle: relay2
+      - switch.toggle: relay3
+      - switch.toggle: relay4
+      #- switch.toggle: relay5
+
+  - platform: status
+    name: "Seedship ${device_id} Root Zone Power Status"
+
+sensor:
+  - platform: wifi_signal
+    name: "Seedship ${device_id} Root Zone Power WiFi Signal"
+    update_interval: 60s
+
+  - platform: uptime
+    name: "Seedship ${device_id} Root Zone Power Uptime"
+
+text_sensor:
+  - platform: version
+    name: "Seedship ${device_id} Root Zone Power ESPHome Version"  
+
+status_led:
+  pin:
+    number: GPIO2
+
+logger:
+ota:
