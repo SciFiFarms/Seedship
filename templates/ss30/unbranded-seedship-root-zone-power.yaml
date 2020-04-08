@@ -83,8 +83,19 @@ sensor:
               - delay: 3min
               - switch.turn_off: water_intake
 
-              #NOTE- I have note renamed relay3 to intake_solenoid, as I am not sure that is the correct one. 
-
+time:
+  #The below code ***Should*** turn on the nozzles every 30 minutes for 5 seconds. https://esphome.io/components/time.html?highlight=time#on-time for code that I used. 
+  - platform: sntp
+    #id: time
+    timezone: America/Denver
+    on_time:
+      - seconds: 0
+        minutes: /30
+        then: 
+          - switch.turn_on: nozzles
+          - delay: 5s
+          - switch.turn_off: nozzles
+      
 text_sensor:
   - platform: version
     name: "Seedship ${device_id} Root Zone Power ESPHome Version"  
