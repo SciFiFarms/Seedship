@@ -60,6 +60,26 @@ sensor:
 
   - platform: uptime
     name: "Seedship ${device_id} Root Zone Power Uptime"
+    
+  - platform: mqtt_subscribe
+    id: root_zone_psi
+    topic: seedship/$device_id/root_zone/psi
+    on_value:
+      then:
+        - if:
+            condition:
+              and:
+                  - sensor.in_range:
+                      id: root_zone_psi
+                      below: 70
+                  - switch.is_off: water_intake
+                  - mqtt.connected:
+            then:
+              - switch.turn_on: water_intake
+              - delay: 3min
+              - switch.turn_off: water_intake
+
+              #NOTE- I have note renamed relay3 to intake_solenoid, as I am not sure that is the correct one. 
 
 text_sensor:
   - platform: version
