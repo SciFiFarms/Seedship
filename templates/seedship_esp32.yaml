@@ -15,6 +15,8 @@ esphome:
   # conflicts between the server and my machine. /tmp/esphome-build is a volume.
   build_path: /tmp/esphome-build/$device_name/
   arduino_version: 1.0.4
+  includes:
+    - custom_components/dual_pot/dual_pot.h
 
 # This one is for light
 i2c:
@@ -28,6 +30,21 @@ i2c:
     scl: GPIO26
     scan: False
     frequency: 50kHz
+
+spi:
+  mosi_pin: GPIO15
+  miso_pin: GPIO21
+  clk_pin: GPIO2
+
+light:
+- platform: custom
+  lambda: |-
+    auto light_out = new dual_pot::DualPotLight();
+    App.register_component(light_out);
+    return {light_out};
+
+  lights:
+    - name: "Seedship $device_id Lights"
 
 sensor:
   - platform: adc
