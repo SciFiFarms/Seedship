@@ -50,7 +50,7 @@ sensor:
   - platform: adc
     pin: GPIO34
     name: Seedship $device_id Root Zone PSI
-    state_topic: seedships/$device_id/root_zone/psi
+    state_topic: seedship/$device_id/root_zone/psi
     icon: "mdi:water-pump"
     update_interval: 250ms
     attenuation: 2.5db
@@ -77,7 +77,7 @@ sensor:
       number: GPIO19
     temperature:
       name: Seedship $device_id Ambiant Temperature
-      state_topic: seedships/$device_id/ambiant/temperature
+      state_topic: seedship/$device_id/ambiant/temperature
       expire_after: 75s
       filters:
           - or:
@@ -86,7 +86,7 @@ sensor:
           - throttle: 0.5s
     humidity:
       name: Seedship $device_id Ambiant Humidity
-      state_topic: seedships/$device_id/ambiant/humidity
+      state_topic: seedship/$device_id/ambiant/humidity
       expire_after: 75s
       filters:
           - or:
@@ -100,7 +100,7 @@ sensor:
       number: GPIO18
     temperature:
       name: Seedship $device_id Shoot Zone Temperature
-      state_topic: seedships/$device_id/shoot_zone/temperature
+      state_topic: seedship/$device_id/shoot_zone/temperature
       expire_after: 75s
       filters:
           - or:
@@ -109,7 +109,7 @@ sensor:
           - throttle: 0.5s
     humidity:
       name: Seedship $device_id Shoot Zone Humidity
-      state_topic: seedships/$device_id/shoot_zone/humidity
+      state_topic: seedship/$device_id/shoot_zone/humidity
       expire_after: 75s
       filters:
           - or:
@@ -123,7 +123,7 @@ sensor:
       number: GPIO5
     temperature:
       name: Seedship $device_id Root Zone Temperature
-      state_topic: seedships/$device_id/root_zone/temperature
+      state_topic: seedship/$device_id/root_zone/temperature
       expire_after: 75s
       filters:
           - or:
@@ -132,7 +132,7 @@ sensor:
           - throttle: 0.5s
     humidity:
       name: Seedship $device_id Root Zone Humidity
-      state_topic: seedships/$device_id/root_zone/humidity
+      state_topic: seedship/$device_id/root_zone/humidity
       expire_after: 75s
       filters:
           - or:
@@ -144,7 +144,7 @@ sensor:
   - platform: tsl2561
     i2c_id: tsl2561_bus
     name: Seedship $device_id Shoot Zone Lux
-    state_topic: seedships/$device_id/shoot_zone/lux
+    state_topic: seedship/$device_id/shoot_zone/lux
     update_interval: 0.5s
     expire_after: 75s
     filters:
@@ -157,15 +157,15 @@ sensor:
     i2c_id: scd30_bus
     co2:
       name: "Seedship $device_id Shoot Zone CO2"
-      state_topic: seedships/$device_id/shoot_zone/co2
+      state_topic: seedship/$device_id/shoot_zone/co2
       #accuracy_decimals: 1
     temperature:
       name: "Seedship $device_id CO2 Temperature"
-      state_topic: seedships/$device_id/shoot_zone/co2_temperature
+      state_topic: seedship/$device_id/shoot_zone/co2_temperature
       #accuracy_decimals: 2
     humidity:
       name: "Seedship $device_id CO2 Humidity"
-      state_topic: seedships/$device_id/shoot_zone/co2_humidity
+      state_topic: seedship/$device_id/shoot_zone/co2_humidity
       #accuracy_decimals: 1
     address: 0x61
     update_interval: 5s

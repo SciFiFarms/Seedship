@@ -12,18 +12,21 @@ mqtt: !include templates/mqtt/mqtt.yaml
 switch:
   - platform: gpio
     name: "Seedship ${device_id} Shoot Zone Cooling"
+    command_topic: seedship/$device_id/shoot_zone/cooling
     pin: GPIO15
     #inverted: yes
     # Relay 1
     id: relay1
   - platform: gpio
     name: "Seedship ${device_id} Shoot Zone Dehumidification"
+    command_topic: seedship/$device_id/shoot_zone/dehumidification
     pin: GPIO5
     #inverted: yes
     # Relay 2 
     id: dehumidifier
   - platform: gpio
     name: "Seedship ${device_id} Shoot Zone Heating"
+    command_topic: seedship/$device_id/shoot_zone/heater
     pin: GPIO14
     #inverted: yes
     # Relay 3
@@ -31,11 +34,13 @@ switch:
   - platform: gpio
     # Relay 4
     name: "Seedship ${device_id} Shoot Zone Lighting"
+    command_topic: seedship/$device_id/shoot_zone/light
     pin: GPIO12
     #inverted: yes
     id: lights
   - platform: gpio
     name: "Seedship ${device_id} Shoot Zone USB Power"
+    command_topic: seedship/$device_id/shoot_zone/usb_power
     pin: GPIO4
     id: relay5
 
