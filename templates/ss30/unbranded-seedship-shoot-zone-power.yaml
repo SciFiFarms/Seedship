@@ -30,7 +30,7 @@ switch:
     pin: GPIO14
     #inverted: yes
     # Relay 3
-    id: heater
+    id: heater_switch
   - platform: gpio
     # Relay 4
     name: "Seedship ${device_id} Shoot Zone Lighting"
@@ -45,6 +45,23 @@ switch:
     restore_mode: ALWAYS_ON
     id: relay5
 
+  - platform: template
+    name: "Seedship ${device_id} Heater"
+    id: heater
+    #icon: "mdi:spray"
+    lambda: |-
+      if (id(heater).state) {
+        return true;
+      } else {
+        return false;
+      }
+    turn_on_action:
+      - switch.turn_on: heater_switch
+      - delay: 5min
+      - switch.turn_off: heater_switch
+      # Give the heater a chance to cool. 
+      - delay: 5min
+
 binary_sensor:
   - platform: gpio
     pin:
@@ -55,7 +72,7 @@ binary_sensor:
     on_press:
       - switch.toggle: relay1
       - switch.toggle: dehumidifier
-      - switch.toggle: heater
+      - switch.toggle: heater_switch
       - switch.toggle: lights
 
   - platform: status
@@ -68,6 +85,66 @@ sensor:
 
   - platform: uptime
     name: "Seedship ${device_id} Shoot Zone Power Uptime"
+
+  - platform: mqtt_subscribe
+    name: "Seedship Shoot Zone Temperature"
+    id: shoot_zone_temperature
+    topic: seedship/$device_id/shoot_zone/temperature
+    on_value:
+      then:
+        - if:
+            condition:
+              and:
+                  - sensor.in_range:
+                      id: shoot_zone_temperature
+                      below: 19.0
+                  - switch.is_off: heater
+                  - mqtt.connected:
+                  # Detect NaN
+                  # Detect Unavalible. 
+                  #- shoot_zone_temperature_time < 1 minute. Or maybe short MQTT death and just detect connection to MQTT.
+            then:
+              - switch.turn_on: heater
+              #- delay: 5min
+              #- switch.turn_off: heater
+        - if:
+            condition:
+              and:
+                  - sensor.in_range:
+                      id: shoot_zone_temperature
+                      above: 21.0
+                  - switch.is_on: heater
+                  # Detect NaN
+                  # Detect Unavalible. 
+                  #- shoot_zone_temperature_time < 1 minute. Or maybe short MQTT death and just detect connection to MQTT.
+            then:
+              - switch.turn_off: heater
+    
+  - platform: mqtt_subscribe
+    name: "Seedship Shoot Zone Humidity"
+    id: shoot_zone_humidity
+    topic: seedship/$device_id/shoot_zone/humidity
+    on_value:
+        then:
+          - if:
+              condition:
+                and:
+                    - sensor.in_range:
+                        id: shoot_zone_humidity
+                        above: 75
+                    - switch.is_off: dehumidifier
+                    - mqtt.connected:
+              then:
+                - switch.turn_on: dehumidifier
+          - if:
+              condition:
+                and:
+                    - sensor.in_range:
+                        id: shoot_zone_humidity
+                        below: 60
+                    - switch.is_on: dehumidifier
+              then:
+                - switch.turn_off: dehumidifier
 
 text_sensor:
   - platform: version
