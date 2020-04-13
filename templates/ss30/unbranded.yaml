@@ -14,22 +14,27 @@ switch:
     name: "$device_name Relay 1"
     pin: GPIO15
     id: relay1
+    restore_mode: RESTORE_DEFAULT_ON
   - platform: gpio
     name: "$device_name Relay 2"
     pin: GPIO5
     id: relay2
+    restore_mode: RESTORE_DEFAULT_ON
   - platform: gpio
     name: "$device_name Relay 3"
     pin: GPIO14
     id: relay3
+    restore_mode: RESTORE_DEFAULT_ON
   - platform: gpio
     name: "$device_name Relay 4"
     pin: GPIO12
     id: relay4
+    restore_mode: RESTORE_DEFAULT_ON
   - platform: gpio
     name: "$device_name USB Power"
     pin: GPIO4
     id: relay5
+    restore_mode: RESTORE_DEFAULT_ON
 
 binary_sensor:
   - platform: gpio

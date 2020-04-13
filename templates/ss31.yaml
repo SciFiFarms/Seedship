@@ -23,10 +23,12 @@ text_sensor:
 switch:
   - platform: gpio
     name: "${device_name} relay 1"
+    restore_mode: ALWAYS_ON
     pin: GPIO12
     id: relay1
   - platform: gpio
     name: "${device_name} relay 2"
+    restore_mode: ALWAYS_ON
     pin: GPIO14
     id: relay2
 

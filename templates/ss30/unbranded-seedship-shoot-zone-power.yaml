@@ -42,6 +42,7 @@ switch:
     name: "Seedship ${device_id} Shoot Zone USB Power"
     command_topic: seedship/$device_id/shoot_zone/usb_power
     pin: GPIO4
+    restore_mode: ALWAYS_ON
     id: relay5
 
 binary_sensor:

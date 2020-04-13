@@ -22,6 +22,7 @@ switch:
     command_topic: seedships/$device_id/root_zone/water_drain
     pin: GPIO5
     id: co2
+    restore_mode: ALWAYS_ON
   - platform: gpio
     # Relay 3
     name: "Seedship ${device_id} Root Zone Air Intake"
