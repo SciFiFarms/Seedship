@@ -52,21 +52,20 @@ sensor:
     name: Seedship $device_id Root Zone PSI
     state_topic: seedship/$device_id/root_zone/psi
     icon: "mdi:water-pump"
-    update_interval: 250ms
+    update_interval: 1s
     attenuation: 2.5db
     expire_after: 60s
+    force_update: true
     filters:
-      - or:
-        - delta: 0.03
-        - throttle: 30s
-      - throttle: 0.1s
-      #- sliding_window_moving_average:
-      #    window_size: 7
-      #    send_every: 2
-        
-      - exponential_moving_average:
-          alpha: 0.1
-          send_every: 4
+      #- or:
+        #- delta: 10
+        #- throttle: 1s
+      - sliding_window_moving_average:
+          window_size: 10
+          send_every: 1
+      #- exponential_moving_average:
+          #alpha: .1
+          #send_every: 1
       - offset: -0.44
       - multiply: 111.1111
     unit_of_measurement: "PSI"
