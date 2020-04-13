@@ -14,22 +14,26 @@ switch:
     name: "Seedship ${device_id} Shoot Zone Cooling"
     pin: GPIO15
     #inverted: yes
+    # Relay 1
     id: relay1
   - platform: gpio
     name: "Seedship ${device_id} Shoot Zone Dehumidification"
     pin: GPIO5
     #inverted: yes
-    id: relay2
+    # Relay 2 
+    id: dehumidifier
   - platform: gpio
     name: "Seedship ${device_id} Shoot Zone Heating"
     pin: GPIO14
     #inverted: yes
-    id: relay3
+    # Relay 3
+    id: heater
   - platform: gpio
+    # Relay 4
     name: "Seedship ${device_id} Shoot Zone Lighting"
     pin: GPIO12
     #inverted: yes
-    id: relay4
+    id: lights
   - platform: gpio
     name: "Seedship ${device_id} Shoot Zone USB Power"
     pin: GPIO4
@@ -44,10 +48,9 @@ binary_sensor:
     name: "Seedship ${device_id} Shoot Zone Power Button"
     on_press:
       - switch.toggle: relay1
-      - switch.toggle: relay2
-      - switch.toggle: relay3
-      - switch.toggle: relay4
-      #- switch.toggle: relay5
+      - switch.toggle: dehumidifier
+      - switch.toggle: heater
+      - switch.toggle: lights
 
   - platform: status
     name: "Seedship ${device_id} Shoot Zone Power Status"
