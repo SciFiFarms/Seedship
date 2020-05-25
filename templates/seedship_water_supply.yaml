@@ -3,6 +3,7 @@ substitutions:
   device_id: !gen_device_id
   mqtt_username: !gen_mqtt_username
   mqtt_password: !gen_mqtt_password
+  # TODO: This should be generated? 
   prefix: water_supply
   fancy_prefix: Seedship Water Supply $device_id 
 
@@ -23,8 +24,8 @@ esphome:
 sensor:
   - platform: adc
     pin: GPIO34
-    name: Seedship Water Supply $device_id Pump PSI
-    state_topic: seedship/$device_id/pump/psi
+    name: $fancy_prefix Pump PSI
+    state_topic: seedship/${prefix}_${device_id}/pump/psi
     icon: "mdi:water-pump"
     update_interval: 1s
     id: pump_psi
