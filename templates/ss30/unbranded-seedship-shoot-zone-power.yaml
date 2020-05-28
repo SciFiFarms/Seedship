@@ -150,6 +150,19 @@ text_sensor:
   - platform: version
     name: "Seedship ${device_id} Shoot Zone Power ESPHome Version"  
 
+time:
+  - platform: sntp
+    #id: time
+    timezone: America/Denver
+    on_time:
+      - seconds: 0
+        minutes: 30
+        hours: 21
+        then: 
+          - switch.turn_on: lights
+          - delay: 12h
+          - switch.turn_off: lights
+
 status_led:
   pin:
     number: GPIO2
