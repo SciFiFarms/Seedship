@@ -102,16 +102,16 @@ sensor:
               - switch.turn_off: nozzles
 
 time:
-  #The below code ***Should*** turn on the nozzles every 30 minutes for 5 seconds. https://esphome.io/components/time.html?highlight=time#on-time for code that I used. 
+  #The below code ***Should*** turn on the nozzles every 10 minutes for 10 seconds. https://esphome.io/components/time.html?highlight=time#on-time for code that I used. 
   - platform: sntp
     #id: time
     timezone: America/Denver
     on_time:
       - seconds: 0
-        minutes: /30
+        minutes: /5
         then: 
           - switch.turn_on: nozzles
-          - delay: 5s
+          - delay: 10s
           - switch.turn_off: nozzles
       
 text_sensor:
