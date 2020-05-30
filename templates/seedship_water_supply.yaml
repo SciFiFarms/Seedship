@@ -117,6 +117,7 @@ sensor:
   - platform: template
     name: Seedship Water Supply $device_id Pump PSI Raw 
     accuracy_decimals: 4
+    unit_of_measurement: "raw"
     id: pump_raw_psi
 
 #####
@@ -127,7 +128,6 @@ sensor:
     icon: "mdi:water-pump"
     update_interval: 1s
     id: bus_psi
-    #attenuation: 2.5db
     attenuation: 11db
     expire_after: 60s
     force_update: true
@@ -152,21 +152,14 @@ sensor:
         #- 2.25 -> 110.4
     unit_of_measurement: "PSI"
     on_raw_value:
-      #then: 
       - sensor.template.publish:
           id: bus_raw_psi
           state: !lambda "return x;"
-        #- mqtt.publish:
-        #    topic: seedship/$device_id/pump/set_raw_psi
-        #    payload: !lambda |-
-        #      static char buff[7];
-        #      return std::string(dtostrf(x,3,2,buff));
-  # TODO: Update this via command rather than mqtt. 
-  #- platform: custom
 
   - platform: template
     name: Seedship Water Supply $device_id Bus PSI Raw 
     accuracy_decimals: 4
+    unit_of_measurement: "raw"
     id: bus_raw_psi
 
 
