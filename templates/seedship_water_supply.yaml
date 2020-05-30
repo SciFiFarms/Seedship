@@ -115,7 +115,7 @@ sensor:
             state: !lambda "return x;"
 
   - platform: template
-    name: Seedship Water Supply $device_id Pump PSI Raw 
+    name: $fancy_prefix Pump PSI Raw 
     accuracy_decimals: 4
     unit_of_measurement: "raw"
     id: pump_raw_psi
@@ -123,8 +123,8 @@ sensor:
 #####
   - platform: adc
     pin: GPIO35
-    name: Seedship Water Supply $device_id Bus PSI
-    state_topic: seedship/$device_id/bus/psi
+    name: $fancy_prefix Bus PSI
+    state_topic: seedship/${prefix}_$device_id/bus/psi
     icon: "mdi:water-pump"
     update_interval: 1s
     id: bus_psi
@@ -157,7 +157,7 @@ sensor:
           state: !lambda "return x;"
 
   - platform: template
-    name: Seedship Water Supply $device_id Bus PSI Raw 
+    name: $fancy_prefix Bus PSI Raw 
     accuracy_decimals: 4
     unit_of_measurement: "raw"
     id: bus_raw_psi
