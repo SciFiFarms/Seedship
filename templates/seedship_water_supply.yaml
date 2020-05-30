@@ -71,6 +71,13 @@ text_sensor:
             }
 
 sensor:
+  - platform: mqtt_subscribe
+    name: $fancy_prefix PSI Manual
+    state_topic: seedship/${prefix}_$device_id/psi_manual
+    topic: seedship/${prefix}_$device_id/psi_manual_input
+    accuracy_decimals: 2
+    unit_of_measurement: "PSI"
+
   - platform: adc
     pin: GPIO34
     name: $fancy_prefix Pump PSI
