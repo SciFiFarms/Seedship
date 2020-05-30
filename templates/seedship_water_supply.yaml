@@ -21,6 +21,55 @@ esphome:
   #includes:
   #  - custom_components/dual_pot/dual_pot.h
 
+text_sensor:
+  - platform: mqtt_subscribe
+    topic: seedship/${prefix}_$device_id/bus/psi_calibration
+    name: $fancy_prefix Bus PSI calibration 
+    qos: 1
+    on_value:
+      then:
+        - lambda: |-
+            static const char *TAG = "custom_sensor";
+            CalibrateLinearFilter* filter = id(bus_psi).get_filter<CalibrateLinearFilter>();
+
+            if(filter == nullptr) {
+              ESP_LOGW(TAG, "Could not find filter.");
+            } else {
+              ESP_LOGV(TAG, "Found filter! %s", typeid (filter).name());
+              json::parse_json(x, 
+                [filter](JsonObject &root) { 
+                    ESP_LOGW(TAG, "JSON PARSED");
+                    if (root.containsKey("slope"))
+                      filter->set_slope(root["slope"]);
+                    if (root.containsKey("bias"))
+                      filter->set_bias(root["bias"]);
+              });
+            }
+
+  - platform: mqtt_subscribe
+    topic: seedship/${prefix}_$device_id/pump/psi_calibration
+    name: $fancy_prefix Pump PSI calibration 
+    qos: 1
+    on_value:
+      then:
+        - lambda: |-
+            static const char *TAG = "custom_sensor";
+            CalibrateLinearFilter* filter = id(pump_psi).get_filter<CalibrateLinearFilter>();
+
+            if(filter == nullptr) {
+              ESP_LOGW(TAG, "Could not find filter.");
+            } else {
+              ESP_LOGV(TAG, "Found filter! %s", typeid (filter).name());
+              json::parse_json(x, 
+                [filter](JsonObject &root) { 
+                    ESP_LOGW(TAG, "JSON PARSED");
+                    if (root.containsKey("slope"))
+                      filter->set_slope(root["slope"]);
+                    if (root.containsKey("bias"))
+                      filter->set_bias(root["bias"]);
+              });
+            }
+
 sensor:
   - platform: adc
     pin: GPIO34
@@ -62,41 +111,6 @@ sensor:
     name: Seedship Water Supply $device_id Pump PSI Raw 
     accuracy_decimals: 4
     id: pump_raw_psi
-
-  - platform: mqtt_subscribe
-    name: Seedship Water Supply $device_id Pump PSI calibration slope
-    id: pump_calibration_slope
-    topic: seedship/$device_id/pump/psi_calibration_slope
-    on_value:
-      then:
-        - lambda: |-
-            static const char *TAG = "custom_sensor";
-            CalibrateLinearFilter* filter = id(pump_psi).get_filter<CalibrateLinearFilter>();
-
-            if(filter == nullptr) {
-              ESP_LOGW(TAG, "Could not find filter.");
-            } else {
-              ESP_LOGV(TAG, "Found filter! %s", typeid (filter).name());
-              filter->set_slope(x);
-            }
-
-  - platform: mqtt_subscribe
-    name: Seedship Water Supply $device_id Pump PSI calibration bias
-    id: pump_calibration_bias
-    #seedship/ss_water_system/psi_calibration_bias
-    topic: seedship/$device_id/psi_calibration_bias
-    on_value:
-      then:
-        - lambda: |-
-            static const char *TAG = "custom_sensor";
-            CalibrateLinearFilter* filter = id(pump_psi).get_filter<CalibrateLinearFilter>();
-
-            if(filter == nullptr) {
-              ESP_LOGW(TAG, "Could not find filter.");
-            } else {
-              ESP_LOGV(TAG, "Found filter! %s", typeid (filter).name());
-              filter->set_bias(x);
-            }
 
 #####
   - platform: adc
@@ -148,47 +162,9 @@ sensor:
     accuracy_decimals: 4
     id: bus_raw_psi
 
-  - platform: mqtt_subscribe
-    name: Seedship Water Supply $device_id Bus PSI calibration slope
-    id: bus_calibration_slope
-    topic: seedship/$device_id/bus/psi_calibration_slope
-    on_value:
-      then:
-        - lambda: |-
-            static const char *TAG = "custom_sensor";
-            CalibrateLinearFilter* filter = id(bus_psi).get_filter<CalibrateLinearFilter>();
 
-            if(filter == nullptr) {
-              ESP_LOGW(TAG, "Could not find filter.");
-            } else {
-              ESP_LOGV(TAG, "Found filter! %s", typeid (filter).name());
-              filter->set_slope(x);
-            }
-
-  - platform: mqtt_subscribe
-    name: Seedship Water Supply $device_id Bus PSI calibration bias
-    id: bus_calibration_bias
-    topic: seedship/$device_id/bus/psi_calibration_bias
-    on_value:
-      then:
-        - lambda: |-
-            static const char *TAG = "custom_sensor";
-            CalibrateLinearFilter* filter = id(bus_psi).get_filter<CalibrateLinearFilter>();
-
-            if(filter == nullptr) {
-              ESP_LOGW(TAG, "Could not find filter.");
-            } else {
-              ESP_LOGV(TAG, "Found filter! %s", typeid (filter).name());
-              filter->set_bias(x);
-            }
 ####
 
-  - platform: mqtt_subscribe
-    name: Seedship $device_id PSI Manual
-    state_topic: seedship/$device_id/psi_manual
-    topic: seedship/$device_id/psi_manual_input
-    accuracy_decimals: 2
-    unit_of_measurement: "PSI"
 # Enable logging
 logger:
 # Enable Over the Air Updates
