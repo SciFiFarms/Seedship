@@ -48,6 +48,30 @@ light:
   lights:
     - name: "${fancy_prefix} Lights"
 
+text_sensor:
+  - platform: mqtt_subscribe
+    topic: seedship/${prefix}_$device_id/root_zone/psi_calibration
+    name: $fancy_prefix Root Zone PSI calibration 
+    qos: 1
+    on_value:
+      then:
+        - lambda: |-
+            static const char *TAG = "custom_sensor";
+            CalibrateLinearFilter* filter = id(psi).get_filter<CalibrateLinearFilter>();
+
+            if(filter == nullptr) {
+              ESP_LOGW(TAG, "Could not find filter.");
+            } else {
+              ESP_LOGV(TAG, "Found filter! %s", typeid (filter).name());
+              json::parse_json(x, 
+                [filter](JsonObject &root) { 
+                    ESP_LOGW(TAG, "JSON PARSED");
+                    if (root.containsKey("slope"))
+                      filter->set_slope(root["slope"]);
+                    if (root.containsKey("bias"))
+                      filter->set_bias(root["bias"]);
+              });
+            }
 sensor:
   - platform: adc
     pin: GPIO34
@@ -55,7 +79,8 @@ sensor:
     state_topic: seedship/${prefix}_$device_id/root_zone/psi
     icon: "mdi:water-pump"
     update_interval: 1s
-    attenuation: 2.5db
+    id: psi
+    attenuation: 11db
     expire_after: 60s
     force_update: true
     filters:
@@ -68,8 +93,21 @@ sensor:
       #- exponential_moving_average:
           #alpha: .1
           #send_every: 1
-      - offset: -0.44
-      - multiply: 111.1111
+      - calibrate_linear:
+        ## 300 PSI sensor
+        #- 0.5 -> 0.0
+        #- 0.89 -> 25.4
+        #- 1.35 -> 55
+        #- 2.0 -> 93.3
+        #- 2.1 -> 103.3
+        #- 2.25 -> 110.4
+        # 200 PSI sensor
+        - 0.5 -> 0.0
+        - 1.14 -> 25.8
+        - 1.37 -> 35.8
+        - 1.85 -> 55.5
+        - 3.09 -> 103.4
+        - 3.28 -> 109.2
     unit_of_measurement: "PSI"
     on_raw_value:
       then: 
