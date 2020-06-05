@@ -4,6 +4,8 @@ substitutions:
   device_id: !gen_device_id
   mqtt_username: !gen_mqtt_username
   mqtt_password: !gen_mqtt_password
+  prefix: seedship
+  fancy_prefix: Seedship $device_id 
 
 esphome: !include templates/esphome/esp01_1m.yaml
 wifi: !include secrets/wifi.yaml
@@ -12,32 +14,32 @@ mqtt: !include templates/mqtt/mqtt.yaml
 switch:
   - platform: gpio
     # Relay 1
-    name: "Seedship ${device_id} Root Zone Water Nozzle"
-    command_topic: seedships/$device_id/root_zone/water_nozzle
+    name: "${fancy_prefix} Root Zone Water Nozzle"
+    command_topic: seedship/${prefix}_$device_id/root_zone/water_nozzle
     pin: GPIO15
     id: nozzles
   - platform: gpio
     # Relay 2
-    name: "Seedship ${device_id} CO2 Intake"
-    command_topic: seedships/$device_id/root_zone/water_drain
+    name: "${fancy_prefix} CO2 Intake"
+    command_topic: seedship/${prefix}_$device_id/root_zone/water_drain
     pin: GPIO5
     id: co2
     restore_mode: ALWAYS_ON
   - platform: gpio
     # Relay 3
-    name: "Seedship ${device_id} Root Zone Air Intake"
-    command_topic: seedships/$device_id/root_zone/air_intake
+    name: "${fancy_prefix} Root Zone Air Intake"
+    command_topic: seedship/${prefix}_$device_id/root_zone/air_intake
     pin: GPIO14
     id: air_intake
   - platform: gpio
     # Relay 4
-    name: "Seedship ${device_id} Root Zone Water Intake"
-    command_topic: seedships/$device_id/root_zone/water_intake
+    name: "${fancy_prefix} Root Zone Water Intake"
+    command_topic: seedship/${prefix}_$device_id/root_zone/water_intake
     pin: GPIO12
     id: water_intake
   - platform: gpio
-    name: "Seedship ${device_id} Root Zone USB"
-    command_topic: seedships/$device_id/root_zone/usb
+    name: "${fancy_prefix} Root Zone USB"
+    command_topic: seedship/${prefix}_$device_id/root_zone/usb
     pin: GPIO4
     id: relay5
     restore_mode: ALWAYS_ON
@@ -48,7 +50,7 @@ binary_sensor:
       number: GPIO13
       mode: INPUT_PULLUP
       inverted: False
-    name: "Seedship ${device_id} Root Zone Power Button"
+    name: "${fancy_prefix} Root Zone Power Button"
     on_press:
       - switch.toggle: nozzles
       - switch.toggle: co2
@@ -56,19 +58,19 @@ binary_sensor:
       - switch.toggle: water_intake
 
   - platform: status
-    name: "Seedship ${device_id} Root Zone Power Status"
+    name: "${fancy_prefix} Root Zone Power Status"
 
 sensor:
   - platform: wifi_signal
-    name: "Seedship ${device_id} Root Zone Power WiFi Signal"
+    name: "${fancy_prefix} Root Zone Power WiFi Signal"
     update_interval: 60s
 
   - platform: uptime
-    name: "Seedship ${device_id} Root Zone Power Uptime"
+    name: "${fancy_prefix} Root Zone Power Uptime"
     
   - platform: mqtt_subscribe
     id: root_zone_psi
-    topic: seedship/$device_id/root_zone/psi
+    topic: seedship/${prefix}_$device_id/root_zone/psi
     on_value:
       then:
         - if:
@@ -86,7 +88,7 @@ sensor:
 
   - platform: mqtt_subscribe
     id: mist_for_seconds
-    topic: seedship/$device_id/root_zone/mist_for_seconds
+    topic: seedship/${prefix}_$device_id/root_zone/mist_for_seconds
     on_value:
       then:
         if:
@@ -116,7 +118,7 @@ time:
       
 text_sensor:
   - platform: version
-    name: "Seedship ${device_id} Root Zone Power ESPHome Version"  
+    name: "${fancy_prefix} Root Zone Power ESPHome Version"  
 
 status_led:
   pin:

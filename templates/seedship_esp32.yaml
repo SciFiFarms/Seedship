@@ -3,6 +3,8 @@ substitutions:
   device_id: !gen_device_id
   mqtt_username: !gen_mqtt_username
   mqtt_password: !gen_mqtt_password
+  prefix: seedship
+  fancy_prefix: Seedship $device_id
 
 wifi: !include secrets/wifi.yaml
 mqtt: !include templates/mqtt/mqtt.yaml
@@ -44,13 +46,13 @@ light:
     return {light_out};
 
   lights:
-    - name: "Seedship $device_id Lights"
+    - name: "${fancy_prefix} Lights"
 
 sensor:
   - platform: adc
     pin: GPIO34
-    name: Seedship $device_id Root Zone PSI
-    state_topic: seedship/$device_id/root_zone/psi
+    name: ${fancy_prefix} Root Zone PSI
+    state_topic: seedship/${prefix}_$device_id/root_zone/psi
     icon: "mdi:water-pump"
     update_interval: 1s
     attenuation: 2.5db
@@ -75,8 +77,8 @@ sensor:
     pin: 
       number: GPIO19
     temperature:
-      name: Seedship $device_id Ambiant Temperature
-      state_topic: seedship/$device_id/ambiant/temperature
+      name: ${fancy_prefix} Ambiant Temperature
+      state_topic: seedship/${prefix}_$device_id/ambiant/temperature
       expire_after: 75s
       filters:
           - or:
@@ -84,8 +86,8 @@ sensor:
                   - throttle: 30s
           - throttle: 0.5s
     humidity:
-      name: Seedship $device_id Ambiant Humidity
-      state_topic: seedship/$device_id/ambiant/humidity
+      name: ${fancy_prefix} Ambiant Humidity
+      state_topic: seedship/${prefix}_$device_id/ambiant/humidity
       expire_after: 75s
       filters:
           - or:
@@ -98,8 +100,8 @@ sensor:
     pin: 
       number: GPIO18
     temperature:
-      name: Seedship $device_id Shoot Zone Temperature
-      state_topic: seedship/$device_id/shoot_zone/temperature
+      name: ${fancy_prefix} Shoot Zone Temperature
+      state_topic: seedship/${prefix}_$device_id/shoot_zone/temperature
       expire_after: 75s
       filters:
           - or:
@@ -107,8 +109,8 @@ sensor:
                   - throttle: 30s
           - throttle: 0.5s
     humidity:
-      name: Seedship $device_id Shoot Zone Humidity
-      state_topic: seedship/$device_id/shoot_zone/humidity
+      name: ${fancy_prefix} Shoot Zone Humidity
+      state_topic: seedship/${prefix}_$device_id/shoot_zone/humidity
       expire_after: 75s
       filters:
           - or:
@@ -121,8 +123,8 @@ sensor:
     pin: 
       number: GPIO5
     temperature:
-      name: Seedship $device_id Root Zone Temperature
-      state_topic: seedship/$device_id/root_zone/temperature
+      name: ${fancy_prefix} Root Zone Temperature
+      state_topic: seedship/${prefix}_$device_id/root_zone/temperature
       expire_after: 75s
       filters:
           - or:
@@ -130,8 +132,8 @@ sensor:
                   - throttle: 30s
           - throttle: 0.5s
     humidity:
-      name: Seedship $device_id Root Zone Humidity
-      state_topic: seedship/$device_id/root_zone/humidity
+      name: ${fancy_prefix} Root Zone Humidity
+      state_topic: seedship/${prefix}_$device_id/root_zone/humidity
       expire_after: 75s
       filters:
           - or:
@@ -142,8 +144,8 @@ sensor:
 
   - platform: tsl2561
     i2c_id: tsl2561_bus
-    name: Seedship $device_id Shoot Zone Lux
-    state_topic: seedship/$device_id/shoot_zone/lux
+    name: ${fancy_prefix} Shoot Zone Lux
+    state_topic: seedship/${prefix}_$device_id/shoot_zone/lux
     update_interval: 0.5s
     expire_after: 75s
     filters:
@@ -155,16 +157,16 @@ sensor:
   - platform: scd30
     i2c_id: scd30_bus
     co2:
-      name: "Seedship $device_id Shoot Zone CO2"
-      state_topic: seedship/$device_id/shoot_zone/co2
+      name: "${fancy_prefix} Shoot Zone CO2"
+      state_topic: seedship/${prefix}_$device_id/shoot_zone/co2
       #accuracy_decimals: 1
     temperature:
-      name: "Seedship $device_id CO2 Temperature"
-      state_topic: seedship/$device_id/shoot_zone/co2_temperature
+      name: "${fancy_prefix} CO2 Temperature"
+      state_topic: seedship/${prefix}_$device_id/shoot_zone/co2_temperature
       #accuracy_decimals: 2
     humidity:
-      name: "Seedship $device_id CO2 Humidity"
-      state_topic: seedship/$device_id/shoot_zone/co2_humidity
+      name: "${fancy_prefix} CO2 Humidity"
+      state_topic: seedship/${prefix}_$device_id/shoot_zone/co2_humidity
       #accuracy_decimals: 1
     address: 0x61
     update_interval: 5s
