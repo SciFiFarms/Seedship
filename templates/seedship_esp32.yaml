@@ -71,6 +71,16 @@ sensor:
       - offset: -0.44
       - multiply: 111.1111
     unit_of_measurement: "PSI"
+    on_raw_value:
+      then: 
+        - sensor.template.publish:
+            id: raw_psi
+            state: !lambda "return x;"
+  - platform: template
+    name: $fancy_prefix Root Zone PSI Raw 
+    accuracy_decimals: 4
+    unit_of_measurement: "raw"
+    id: raw_psi
 
   - platform: dht
     model: DHT22
