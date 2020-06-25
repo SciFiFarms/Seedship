@@ -142,13 +142,14 @@ sensor:
                   - delta: 1
                   - throttle: 30s
           - throttle: 0.5s
-    update_interval: 1s
+    update_interval: 10s
   - platform: dht
     model: DHT22
     pin: 
       number: GPIO18
     temperature:
       name: ${fancy_prefix} Shoot Zone Temperature
+      id: shoot_zone_temp
       state_topic: seedship/${prefix}_$device_id/shoot_zone/temperature
       expire_after: 75s
       filters:
@@ -158,6 +159,7 @@ sensor:
           - throttle: 0.5s
     humidity:
       name: ${fancy_prefix} Shoot Zone Humidity
+      id: shoot_zone_humidity
       state_topic: seedship/${prefix}_$device_id/shoot_zone/humidity
       expire_after: 75s
       filters:
@@ -165,7 +167,16 @@ sensor:
                   - delta: 1
                   - throttle: 30s
           - throttle: 0.5s
-    update_interval: 1s
+    update_interval: 10s
+  - platform: template
+    name: $fancy_prefix Shoot Zone VPD 
+    accuracy_decimals: 2
+    unit_of_measurement: "kPa"
+    id: shoot_zone_vpd
+    update_interval: 10s
+    lambda: |- 
+        return (1 - id(shoot_zone_humidity).state/100)*610.7*pow(10.0,(7.5 * id(shoot_zone_temp).state) / (237.3 + id(shoot_zone_temp).state) )/1000;
+
   - platform: dht
     model: DHT22
     pin: 
