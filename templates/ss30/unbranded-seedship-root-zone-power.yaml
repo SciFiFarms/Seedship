@@ -15,10 +15,10 @@ mqtt: !include templates/mqtt/mqtt.yaml
 switch:
   - platform: gpio
     # Relay 1
-    name: "${fancy_prefix} Root Zone Water Nozzle"
-    command_topic: seedship/${prefix}_$device_id/root_zone/water_nozzle
+    name: "${fancy_prefix} Root Zone Water Intake"
+    command_topic: seedship/${prefix}_$device_id/root_zone/water_intake
     pin: GPIO15
-    id: nozzles
+    id: water_intake
   - platform: gpio
     # Relay 2
     name: "${fancy_prefix} CO2 Intake"
@@ -34,10 +34,10 @@ switch:
     id: air_intake
   - platform: gpio
     # Relay 4
-    name: "${fancy_prefix} Root Zone Water Intake"
-    command_topic: seedship/${prefix}_$device_id/root_zone/water_intake
+    name: "${fancy_prefix} Root Zone Water Nozzle"
+    command_topic: seedship/${prefix}_$device_id/root_zone/water_nozzle
     pin: GPIO12
-    id: water_intake
+    id: nozzles
   - platform: gpio
     name: "${fancy_prefix} Root Zone USB"
     command_topic: seedship/${prefix}_$device_id/root_zone/usb
