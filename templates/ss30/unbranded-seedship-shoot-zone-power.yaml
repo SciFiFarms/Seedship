@@ -1,7 +1,8 @@
-# This is a hal-humidity-temperature.yaml template.
+# This is an unbranded-seedship-shoot-zone-power.yaml template.
 substitutions:
   device_name: !gen_device_name
   device_id: !gen_device_id
+  delay: !gen_delay 15
   mqtt_username: !gen_mqtt_username
   mqtt_password: !gen_mqtt_password
 
@@ -163,6 +164,7 @@ time:
             condition:
               switch.is_off: lights
             then:
+              - delay: $delay
               - switch.turn_on: lights
               
   - platform: sntp
@@ -177,6 +179,7 @@ time:
             condition:
               switch.is_on: lights
             then:
+              - delay: $delay
               - switch.turn_off: lights
 
 status_led:

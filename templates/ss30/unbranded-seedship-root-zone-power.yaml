@@ -1,4 +1,4 @@
-# This is a hal-humidity-temperature.yaml template.
+# This is an unbranded-seedship-root-zone-power.yaml template. 
 substitutions:
   device_name: !gen_device_name
   device_id: !gen_device_id
@@ -6,6 +6,7 @@ substitutions:
   mqtt_password: !gen_mqtt_password
   prefix: seedship
   fancy_prefix: Seedship $device_id 
+  delay: !gen_delay 15
 
 esphome: !include templates/esphome/esp01_1m.yaml
 wifi: !include secrets/wifi.yaml
@@ -112,8 +113,9 @@ time:
       - seconds: 0
         minutes: /5
         then: 
+          - delay: $delay
           - switch.turn_on: nozzles
-          - delay: 10s
+          - delay: 5s
           - switch.turn_off: nozzles
       
 text_sensor:
