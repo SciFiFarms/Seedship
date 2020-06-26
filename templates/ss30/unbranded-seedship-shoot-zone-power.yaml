@@ -152,16 +152,32 @@ text_sensor:
 
 time:
   - platform: sntp
-    #id: time
+    # Will turn lights on every 5 minutes from 22:00-9:55. Could also add if: switch.is_off: lights with some potential workarounds?
     timezone: America/Denver
     on_time:
       - seconds: 0
-        minutes: 30
-        hours: 21
+        minutes: 0,5,10,15,20,25,30,35,40,45,50,55
+        hours: 22,23,0,1,2,3,4,5,6,7,8,9
         then: 
-          - switch.turn_on: lights
-          - delay: 12h
-          - switch.turn_off: lights
+          if:
+            condition:
+              switch.is_off: lights
+            then:
+              - switch.turn_on: lights
+              
+  - platform: sntp
+    # Will turn lights off every 5 minutes from 10:00-21:55.
+    timezone: America/Denver
+    on_time:
+      - seconds: 0
+        minutes:  0,5,10,15,20,25,30,35,40,45,50,55
+        hours: 10,11,12,13,14,15,16,17,18,19,20,21
+        then:
+          if:
+            condition:
+              switch.is_on: lights
+            then:
+              - switch.turn_off: lights
 
 status_led:
   pin:
