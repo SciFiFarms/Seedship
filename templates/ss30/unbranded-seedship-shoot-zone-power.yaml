@@ -13,34 +13,35 @@ wifi: !include secrets/wifi.yaml
 mqtt: !include templates/mqtt/mqtt.yaml
 
 switch:
+  # Relay 1
   - platform: gpio
     name: "${fancy_prefix} Cooling"
     command_topic: seedship/${prefix}_$device_id/shoot_zone/cooling
     pin: GPIO15
-    #inverted: yes
-    # Relay 1
     id: relay1
+
+  # Relay 2 
   - platform: gpio
     name: "${fancy_prefix} Dehumidification"
     command_topic: seedship/${prefix}_$device_id/shoot_zone/dehumidification
     pin: GPIO5
-    #inverted: yes
-    # Relay 2 
     id: dehumidifier
+
+  # Relay 3
   - platform: gpio
     name: "${fancy_prefix} Heating"
     command_topic: seedship/${prefix}_$device_id/shoot_zone/heater
     pin: GPIO14
-    #inverted: yes
-    # Relay 3
     id: heater_switch
+
+  # Relay 4
   - platform: gpio
-    # Relay 4
     name: "${fancy_prefix} Lighting"
     command_topic: seedship/${prefix}_$device_id/shoot_zone/light
     pin: GPIO12
-    #inverted: yes
     id: lights
+
+  # Relay USB
   - platform: gpio
     name: "${fancy_prefix} USB Power"
     command_topic: seedship/${prefix}_$device_id/shoot_zone/usb_power
@@ -185,4 +186,5 @@ status_led:
     number: GPIO2
 
 logger:
+  #level: VERBOSE
 ota:

@@ -13,31 +13,36 @@ wifi: !include secrets/wifi.yaml
 mqtt: !include templates/mqtt/mqtt.yaml
 
 switch:
+  # Relay 1
   - platform: gpio
-    # Relay 1
     name: "${fancy_prefix} Root Zone Water Intake"
     command_topic: seedship/${prefix}_$device_id/root_zone/water_intake
     pin: GPIO15
     id: water_intake
+
+  # Relay 2
   - platform: gpio
-    # Relay 2
     name: "${fancy_prefix} CO2 Intake"
     command_topic: seedship/${prefix}_$device_id/root_zone/water_drain
     pin: GPIO5
     id: co2
     restore_mode: ALWAYS_ON
+
+  # Relay 3
   - platform: gpio
-    # Relay 3
     name: "${fancy_prefix} Root Zone Air Intake"
     command_topic: seedship/${prefix}_$device_id/root_zone/air_intake
     pin: GPIO14
     id: air_intake
+
+  # Relay 4
   - platform: gpio
-    # Relay 4
     name: "${fancy_prefix} Root Zone Water Nozzle"
     command_topic: seedship/${prefix}_$device_id/root_zone/water_nozzle
     pin: GPIO12
     id: nozzles
+
+  # Relay USB
   - platform: gpio
     name: "${fancy_prefix} Root Zone USB"
     command_topic: seedship/${prefix}_$device_id/root_zone/usb
