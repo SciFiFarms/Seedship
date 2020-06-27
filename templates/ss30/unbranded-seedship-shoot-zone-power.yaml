@@ -5,6 +5,8 @@ substitutions:
   delay: !gen_delay 15
   mqtt_username: !gen_mqtt_username
   mqtt_password: !gen_mqtt_password
+  prefix: seedship
+  fancy_prefix: Seedship $device_id Shoot Zone
 
 esphome: !include templates/esphome/esp01_1m.yaml
 wifi: !include secrets/wifi.yaml
@@ -12,42 +14,42 @@ mqtt: !include templates/mqtt/mqtt.yaml
 
 switch:
   - platform: gpio
-    name: "Seedship ${device_id} Shoot Zone Cooling"
-    command_topic: seedship/$device_id/shoot_zone/cooling
+    name: "${fancy_prefix} Cooling"
+    command_topic: seedship/${prefix}_$device_id/shoot_zone/cooling
     pin: GPIO15
     #inverted: yes
     # Relay 1
     id: relay1
   - platform: gpio
-    name: "Seedship ${device_id} Shoot Zone Dehumidification"
-    command_topic: seedship/$device_id/shoot_zone/dehumidification
+    name: "${fancy_prefix} Dehumidification"
+    command_topic: seedship/${prefix}_$device_id/shoot_zone/dehumidification
     pin: GPIO5
     #inverted: yes
     # Relay 2 
     id: dehumidifier
   - platform: gpio
-    name: "Seedship ${device_id} Shoot Zone Heating"
-    command_topic: seedship/$device_id/shoot_zone/heater
+    name: "${fancy_prefix} Heating"
+    command_topic: seedship/${prefix}_$device_id/shoot_zone/heater
     pin: GPIO14
     #inverted: yes
     # Relay 3
     id: heater_switch
   - platform: gpio
     # Relay 4
-    name: "Seedship ${device_id} Shoot Zone Lighting"
-    command_topic: seedship/$device_id/shoot_zone/light
+    name: "${fancy_prefix} Lighting"
+    command_topic: seedship/${prefix}_$device_id/shoot_zone/light
     pin: GPIO12
     #inverted: yes
     id: lights
   - platform: gpio
-    name: "Seedship ${device_id} Shoot Zone USB Power"
-    command_topic: seedship/$device_id/shoot_zone/usb_power
+    name: "${fancy_prefix} USB Power"
+    command_topic: seedship/${prefix}_$device_id/shoot_zone/usb_power
     pin: GPIO4
     restore_mode: ALWAYS_ON
     id: relay5
 
   - platform: template
-    name: "Seedship ${device_id} Heater"
+    name: "${fancy_prefix} Heater"
     id: heater
     #icon: "mdi:spray"
     lambda: |-
@@ -69,28 +71,24 @@ binary_sensor:
       number: GPIO13
       mode: INPUT_PULLUP
       inverted: False
-    name: "Seedship ${device_id} Shoot Zone Power Button"
-    on_press:
-      - switch.toggle: relay1
-      - switch.toggle: dehumidifier
-      - switch.toggle: heater_switch
-      - switch.toggle: lights
+    name: "${fancy_prefix} Button"
 
   - platform: status
-    name: "Seedship ${device_id} Shoot Zone Power Status"
+    name: "${fancy_prefix} Status"
 
 sensor:
   - platform: wifi_signal
-    name: "Seedship ${device_id} Shoot Zone Power WiFi Signal"
+    name: "${fancy_prefix} WiFi Signal"
     update_interval: 60s
 
   - platform: uptime
-    name: "Seedship ${device_id} Shoot Zone Power Uptime"
+    name: "${fancy_prefix} Uptime"
+
 
   - platform: mqtt_subscribe
-    name: "Seedship Shoot Zone Temperature"
+    name: "${fancy_prefix} Temperature"
     id: shoot_zone_temperature
-    topic: seedship/$device_id/shoot_zone/temperature
+    topic: seedship/${prefix}_$device_id/shoot_zone/temperature
     on_value:
       then:
         - if:
@@ -122,9 +120,9 @@ sensor:
               - switch.turn_off: heater
     
   - platform: mqtt_subscribe
-    name: "Seedship Shoot Zone Humidity"
+    name: "${fancy_prefix} Humidity"
     id: shoot_zone_humidity
-    topic: seedship/$device_id/shoot_zone/humidity
+    topic: seedship/${prefix}_$device_id/shoot_zone/humidity
     on_value:
         then:
           - if:
@@ -149,7 +147,7 @@ sensor:
 
 text_sensor:
   - platform: version
-    name: "Seedship ${device_id} Shoot Zone Power ESPHome Version"  
+    name: "${fancy_prefix} ESPHome Version"  
 
 time:
   - platform: sntp
