@@ -7,6 +7,7 @@ substitutions:
   prefix: seedship
   fancy_prefix: Seedship $device_id 
   delay: !gen_delay 15
+  #debug: !debug
 
 esphome: !include templates/esphome/esp01_1m.yaml
 wifi: !include secrets/wifi.yaml
@@ -14,11 +15,12 @@ mqtt: !include templates/mqtt/mqtt.yaml
 
 switch:
   # Relay 1
-  - platform: gpio
+  - platform: dosage
     name: "${fancy_prefix} Root Zone Water Intake"
     command_topic: seedship/${prefix}_$device_id/root_zone/water_intake
     pin: GPIO15
     id: water_intake
+    dosage: 60s
 
   # Relay 2
   - platform: gpio
@@ -36,11 +38,12 @@ switch:
     id: air_intake
 
   # Relay 4
-  - platform: gpio
+  - platform: dosage
     name: "${fancy_prefix} Root Zone Water Nozzle"
     command_topic: seedship/${prefix}_$device_id/root_zone/water_nozzle
     pin: GPIO12
     id: nozzles
+    dosage: 5s
 
   # Relay USB
   - platform: gpio
@@ -55,13 +58,25 @@ binary_sensor:
     pin:
       number: GPIO13
       mode: INPUT_PULLUP
-      inverted: False
+      inverted: True
     name: "${fancy_prefix} Root Zone Power Button"
-    on_press:
-      - switch.toggle: nozzles
-      - switch.toggle: co2
-      - switch.toggle: air_intake
-      - switch.toggle: water_intake
+    on_multi_click:
+      - timing:
+          - ON for at most 1s
+          - OFF for at most 0.3s
+          - ON for at most 1s
+          - OFF for at least 0.2s
+        then:
+          - logger.log: "Double-Clicked"
+          - lambda: |-
+              id(water_intake).dose();
+      - timing:
+          - ON for at most 1s
+          - OFF for at least 0.5s
+        then:
+          - logger.log: "Single-Clicked"
+          - lambda: |-
+              id(nozzles).dose();
 
   - platform: status
     name: "${fancy_prefix} Root Zone Power Status"

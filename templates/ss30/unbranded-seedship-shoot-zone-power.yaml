@@ -35,11 +35,12 @@ switch:
     id: heater_switch
 
   # Relay 4
-  - platform: gpio
+  - platform: dosage
     name: "${fancy_prefix} Lighting"
     command_topic: seedship/${prefix}_$device_id/shoot_zone/light
     pin: GPIO12
     id: lights
+    dosage: 1h
 
   # Relay USB
   - platform: gpio
@@ -71,8 +72,51 @@ binary_sensor:
     pin:
       number: GPIO13
       mode: INPUT_PULLUP
-      inverted: False
+      inverted: True
     name: "${fancy_prefix} Button"
+    on_multi_click:
+    - timing:
+        - ON for at most 1s
+        - OFF for at most 0.3s
+        - ON for at most 1s
+        - OFF for at least 0.2s
+      then:
+        - logger.log: "Double-Clicked"
+        - switch.toggle: lights
+        - lambda: |-
+            if(id(mode).state != $MODE_MANUAL_OVERRIDE)
+            {
+              id(mode).publish_state($MODE_MANUAL_OVERRIDE);
+            }
+            else
+            {
+              id(mode).publish_state($MODE_RUNNING);
+            }
+    - timing:
+        - ON for at most 1s
+        - OFF for at least 0.5s
+      then:
+        - logger.log: "Single-Clicked"
+        - lambda: |-
+            if(id(mode).state != $MODE_MANUAL_OVERRIDE)
+            {
+              id(mode).publish_state($MODE_MANUAL_OVERRIDE);
+            }
+            else
+            {
+              id(mode).publish_state($MODE_RUNNING);
+            }
+        - lambda: |-
+            id(lights).dose();
+        - lambda: |-
+            if(id(mode).state != $MODE_MANUAL_OVERRIDE)
+            {
+              id(mode).publish_state($MODE_MANUAL_OVERRIDE);
+            }
+            else
+            {
+              id(mode).publish_state($MODE_RUNNING);
+            }
 
   - platform: status
     name: "${fancy_prefix} Status"
