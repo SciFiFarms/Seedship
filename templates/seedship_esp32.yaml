@@ -1,24 +1,6 @@
 substitutions:
-  device_name: !gen_device_name
-  device_id: !gen_device_id
-  mqtt_username: !gen_mqtt_username
-  mqtt_password: !gen_mqtt_password
-  prefix: seedship
-  fancy_prefix: Seedship $device_id
-
-wifi: !include secrets/wifi.yaml
-mqtt: !include templates/mqtt/mqtt.yaml
-
-esphome: 
-  name: $device_name 
-  platform: ESP32
-  board: esp32doit-devkit-v1
-  # If it builds in the /config folder like is default, then there arise
-  # conflicts between the server and my machine. /tmp/esphome-build is a volume.
-  build_path: /tmp/esphome-build/$device_name/
-  arduino_version: 1.0.4
-  includes:
-    - custom_components/dual_pot/dual_pot.h
+  #debug: !debug
+  <<: !include templates/generated_substitutions.yaml
 
 # This one is for light
 i2c:
@@ -46,12 +28,12 @@ light:
     return {light_out};
 
   lights:
-    - name: "${fancy_prefix} Lights"
+    - name: "${system_friendly} Lights"
 
 text_sensor:
   - platform: mqtt_subscribe
-    topic: seedship/${prefix}_$device_id/root_zone/psi_calibration
-    name: $fancy_prefix Root Zone PSI calibration 
+    topic: seedship/${system}/root_zone_psi_calibration
+    name: ${system_friendly} Root Zone PSI calibration 
     qos: 1
     on_value:
       then:
@@ -75,8 +57,8 @@ text_sensor:
 sensor:
   - platform: adc
     pin: GPIO34
-    name: ${fancy_prefix} Root Zone PSI
-    state_topic: seedship/${prefix}_$device_id/root_zone/psi
+    name: ${system_friendly} Root Zone PSI
+    state_topic: seedship/${system}/root_zone_psi
     icon: "mdi:water-pump"
     update_interval: 1s
     id: psi
@@ -115,7 +97,7 @@ sensor:
             id: raw_psi
             state: !lambda "return x;"
   - platform: template
-    name: $fancy_prefix Root Zone PSI Raw 
+    name: $system_friendly Root Zone PSI Raw 
     accuracy_decimals: 4
     unit_of_measurement: "raw"
     id: raw_psi
@@ -125,8 +107,8 @@ sensor:
     pin: 
       number: GPIO19
     temperature:
-      name: ${fancy_prefix} Ambiant Temperature
-      state_topic: seedship/${prefix}_$device_id/ambiant/temperature
+      name: ${system_friendly} Ambiant Temperature
+      state_topic: seedship/${system}/ambiant_temperature
       expire_after: 75s
       filters:
           - or:
@@ -134,8 +116,8 @@ sensor:
                   - throttle: 30s
           - throttle: 0.5s
     humidity:
-      name: ${fancy_prefix} Ambiant Humidity
-      state_topic: seedship/${prefix}_$device_id/ambiant/humidity
+      name: ${system_friendly} Ambiant Humidity
+      state_topic: seedship/${system}/ambiant_humidity
       expire_after: 75s
       filters:
           - or:
@@ -148,9 +130,9 @@ sensor:
     pin: 
       number: GPIO18
     temperature:
-      name: ${fancy_prefix} Shoot Zone Temperature
+      name: ${system_friendly} Shoot Zone Temperature
       id: shoot_zone_temp
-      state_topic: seedship/${prefix}_$device_id/shoot_zone/temperature
+      state_topic: seedship/${system}/shoot_zone_temperature
       expire_after: 75s
       filters:
           - or:
@@ -158,9 +140,9 @@ sensor:
                   - throttle: 30s
           - throttle: 0.5s
     humidity:
-      name: ${fancy_prefix} Shoot Zone Humidity
+      name: ${system_friendly} Shoot Zone Humidity
       id: shoot_zone_humidity
-      state_topic: seedship/${prefix}_$device_id/shoot_zone/humidity
+      state_topic: seedship/${system}/shoot_zone_humidity
       expire_after: 75s
       filters:
           - or:
@@ -169,7 +151,7 @@ sensor:
           - throttle: 0.5s
     update_interval: 10s
   - platform: template
-    name: $fancy_prefix Shoot Zone VPD 
+    name: $system_friendly Shoot Zone VPD 
     accuracy_decimals: 2
     unit_of_measurement: "kPa"
     id: shoot_zone_vpd
@@ -182,8 +164,8 @@ sensor:
     pin: 
       number: GPIO5
     temperature:
-      name: ${fancy_prefix} Root Zone Temperature
-      state_topic: seedship/${prefix}_$device_id/root_zone/temperature
+      name: ${system_friendly} Root Zone Temperature
+      state_topic: seedship/${system}/root_zone_temperature
       expire_after: 75s
       filters:
           - or:
@@ -191,8 +173,8 @@ sensor:
                   - throttle: 30s
           - throttle: 0.5s
     humidity:
-      name: ${fancy_prefix} Root Zone Humidity
-      state_topic: seedship/${prefix}_$device_id/root_zone/humidity
+      name: ${system_friendly} Root Zone Humidity
+      state_topic: seedship/${system}/root_zone_humidity
       expire_after: 75s
       filters:
           - or:
@@ -203,8 +185,8 @@ sensor:
 
   - platform: tsl2561
     i2c_id: tsl2561_bus
-    name: ${fancy_prefix} Shoot Zone Lux
-    state_topic: seedship/${prefix}_$device_id/shoot_zone/lux
+    name: ${system_friendly} Shoot Zone Lux
+    state_topic: seedship/${system}/shoot_zone_lux
     update_interval: 0.5s
     expire_after: 75s
     filters:
@@ -216,20 +198,33 @@ sensor:
   - platform: scd30
     i2c_id: scd30_bus
     co2:
-      name: "${fancy_prefix} Shoot Zone CO2"
-      state_topic: seedship/${prefix}_$device_id/shoot_zone/co2
+      name: "${system_friendly} Shoot Zone CO2"
+      state_topic: seedship/${system}/shoot_zone_co2
       #accuracy_decimals: 1
     temperature:
-      name: "${fancy_prefix} CO2 Temperature"
-      state_topic: seedship/${prefix}_$device_id/shoot_zone/co2_temperature
+      name: "${system_friendly} CO2 Temperature"
+      state_topic: seedship/${system}/shoot_zone_co2_temperature
       #accuracy_decimals: 2
     humidity:
-      name: "${fancy_prefix} CO2 Humidity"
-      state_topic: seedship/${prefix}_$device_id/shoot_zone/co2_humidity
+      name: "${system_friendly} CO2 Humidity"
+      state_topic: seedship/${system}/shoot_zone_co2_humidity
       #accuracy_decimals: 1
     address: 0x61
     update_interval: 5s
 
+esphome: 
+  name: $device_name 
+  platform: ESP32
+  board: esp32doit-devkit-v1
+  # If it builds in the /config folder like is default, then there arise
+  # conflicts between the server and my machine. /tmp/esphome-build is a volume.
+  build_path: /tmp/esphome-builds/$device_name/
+  arduino_version: 1.0.4
+  #includes:
+  #  - custom_components/dual_pot/dual_pot.h
+
+wifi: !include secrets/wifi.yaml
+mqtt: !include templates/mqtt/mqtt.yaml
 # Enable logging
 logger:
 # Enable Over the Air Updates

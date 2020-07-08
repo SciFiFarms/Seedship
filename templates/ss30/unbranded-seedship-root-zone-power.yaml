@@ -1,54 +1,44 @@
 # This is an unbranded-seedship-root-zone-power.yaml template. 
 substitutions:
-  device_name: !gen_device_name
-  device_id: !gen_device_id
-  mqtt_username: !gen_mqtt_username
-  mqtt_password: !gen_mqtt_password
-  prefix: seedship
-  fancy_prefix: Seedship $device_id 
-  delay: !gen_delay 15
   #debug: !debug
-
-esphome: !include templates/esphome/esp01_1m.yaml
-wifi: !include secrets/wifi.yaml
-mqtt: !include templates/mqtt/mqtt.yaml
+  <<: !include templates/generated_substitutions.yaml
 
 switch:
   # Relay 1
   - platform: dosage
-    name: "${fancy_prefix} Root Zone Water Intake"
-    command_topic: seedship/${prefix}_$device_id/root_zone/water_intake
+    name: "${system_friendly} ${subsystem_friendly} Water Intake"
+    command_topic: seedship/${system}/${subsystem}_water_intake
     pin: GPIO15
     id: water_intake
     dosage: 60s
 
   # Relay 2
   - platform: gpio
-    name: "${fancy_prefix} CO2 Intake"
-    command_topic: seedship/${prefix}_$device_id/root_zone/water_drain
+    name: "${system_friendly} Shoot Zone Power"
+    command_topic: seedship/${system}/${subsystem}_shoot_zone_power
     pin: GPIO5
-    id: co2
+    #id: co2
     restore_mode: ALWAYS_ON
 
   # Relay 3
   - platform: gpio
-    name: "${fancy_prefix} Root Zone Air Intake"
-    command_topic: seedship/${prefix}_$device_id/root_zone/air_intake
+    name: "${system_friendly} ${subsystem_friendly} Air Intake"
+    command_topic: seedship/${system}/${subsystem}_air_intake
     pin: GPIO14
     id: air_intake
 
   # Relay 4
   - platform: dosage
-    name: "${fancy_prefix} Root Zone Water Nozzle"
-    command_topic: seedship/${prefix}_$device_id/root_zone/water_nozzle
+    name: "${system_friendly} ${subsystem_friendly} Water Nozzle"
+    command_topic: seedship/${system}/${subsystem}_water_nozzle
     pin: GPIO12
     id: nozzles
     dosage: 5s
 
   # Relay USB
   - platform: gpio
-    name: "${fancy_prefix} Root Zone USB"
-    command_topic: seedship/${prefix}_$device_id/root_zone/usb
+    name: "${system_friendly} ${subsystem_friendly} USB"
+    command_topic: seedship/${system}/${subsystem}_usb
     pin: GPIO4
     id: relay5
     restore_mode: ALWAYS_ON
@@ -59,7 +49,7 @@ binary_sensor:
       number: GPIO13
       mode: INPUT_PULLUP
       inverted: True
-    name: "${fancy_prefix} Root Zone Power Button"
+    name: "${system_friendly} ${subsystem_friendly} Button"
     on_multi_click:
       - timing:
           - ON for at most 1s
@@ -79,26 +69,19 @@ binary_sensor:
               id(nozzles).dose();
 
   - platform: status
-    name: "${fancy_prefix} Root Zone Power Status"
+    name: "${system_friendly} ${subsystem_friendly} Status"
 
 sensor:
-  - platform: wifi_signal
-    name: "${fancy_prefix} Root Zone Power WiFi Signal"
-    update_interval: 60s
-
-  - platform: uptime
-    name: "${fancy_prefix} Root Zone Power Uptime"
-    
   - platform: mqtt_subscribe
-    id: root_zone_psi
-    topic: seedship/${prefix}_$device_id/root_zone/psi
+    id: ${subsystem}_psi
+    topic: seedship/${system}/${subsystem}_psi
     on_value:
       then:
         - if:
             condition:
               and:
                   - sensor.in_range:
-                      id: root_zone_psi
+                      id: ${subsystem}_psi
                       below: 70
                   - switch.is_off: water_intake
                   - mqtt.connected:
@@ -107,44 +90,37 @@ sensor:
               - delay: 3min
               - switch.turn_off: water_intake
 
-  - platform: mqtt_subscribe
-    id: mist_for_seconds
-    topic: seedship/${prefix}_$device_id/root_zone/mist_for_seconds
-    on_value:
-      then:
-        if:
-            condition:
-              # This check doesn't actually work. This message is processed after the previous processing has happened, thus the nozzles are always off. 
-              - switch.is_on: nozzles
-            then:
-              - logger.log: Already misting. Ignoring command. 
-            else:
-              - switch.turn_on: nozzles
-              - lambda: |-
-                    delay(x * 1000);
-              - switch.turn_off: nozzles
+  - !include templates/sensor/seedship_mode.yaml
+  - platform: wifi_signal
+    name: "${system_friendly} WiFi Signal"
+    update_interval: 60s
+  - platform: uptime
+    name: "${system_friendly} Uptime"
 
 time:
   #The below code ***Should*** turn on the nozzles every 10 minutes for 10 seconds. https://esphome.io/components/time.html?highlight=time#on-time for code that I used. 
   - platform: sntp
     #id: time
+    # TODO: This should be read from an env var.
     timezone: America/Denver
     on_time:
       - seconds: 0
         minutes: /5
         then: 
           - delay: $delay
-          - switch.turn_on: nozzles
-          - delay: 5s
-          - switch.turn_off: nozzles
-      
+          - lambda: |-
+              id(nozzles).dose();
+
 text_sensor:
   - platform: version
-    name: "${fancy_prefix} Root Zone Power ESPHome Version"  
+    name: "${system_friendly} ${subsystem_friendly} ESPHome Version"  
 
 status_led:
   pin:
     number: GPIO2
 
+esphome: !include templates/esphome/esp01_1m.yaml
+wifi: !include secrets/wifi.yaml
+mqtt: !include templates/mqtt/mqtt.yaml
 logger:
 ota:

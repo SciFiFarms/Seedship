@@ -1,0 +1,10 @@
+---
+device_name: !gen_device_name 
+device_id: !gen_device_id
+system: !gen_system
+system_friendly: !gen_system_friendly
+subsystem: !gen_subsystem
+subsystem_friendly: !gen_subsystem_friendly
+mqtt_username: !gen_mqtt_username
+mqtt_password: !gen_mqtt_password
+delay: !gen_delay 15

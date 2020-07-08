@@ -1,57 +1,48 @@
 # This is an unbranded-seedship-shoot-zone-power.yaml template.
 substitutions:
-  device_name: !gen_device_name
-  device_id: !gen_device_id
-  delay: !gen_delay 15
-  mqtt_username: !gen_mqtt_username
-  mqtt_password: !gen_mqtt_password
-  prefix: seedship
-  fancy_prefix: Seedship $device_id Shoot Zone
-
-esphome: !include templates/esphome/esp01_1m.yaml
-wifi: !include secrets/wifi.yaml
-mqtt: !include templates/mqtt/mqtt.yaml
+  #debug: !debug
+  <<: !include templates/generated_substitutions.yaml
 
 switch:
   # Relay 1
   - platform: gpio
-    name: "${fancy_prefix} Cooling"
-    command_topic: seedship/${prefix}_$device_id/shoot_zone/cooling
+    name: "${system_friendly} Cooling"
+    command_topic: seedship/${system}/${subsystem}_cooling
     pin: GPIO15
     id: relay1
 
   # Relay 2 
   - platform: gpio
-    name: "${fancy_prefix} Dehumidification"
-    command_topic: seedship/${prefix}_$device_id/shoot_zone/dehumidification
+    name: "${system_friendly} Dehumidification"
+    command_topic: seedship/${system}/${subsystem}_dehumidification
     pin: GPIO5
     id: dehumidifier
 
   # Relay 3
   - platform: gpio
-    name: "${fancy_prefix} Heating"
-    command_topic: seedship/${prefix}_$device_id/shoot_zone/heater
+    name: "${system_friendly} Heating"
+    command_topic: seedship/${system}/${subsystem}_heating
     pin: GPIO14
     id: heater_switch
 
   # Relay 4
   - platform: dosage
-    name: "${fancy_prefix} Lighting"
-    command_topic: seedship/${prefix}_$device_id/shoot_zone/light
+    name: "${system_friendly} Lighting"
+    command_topic: seedship/${system}/${subsystem}_lighting
     pin: GPIO12
     id: lights
     dosage: 1h
 
   # Relay USB
   - platform: gpio
-    name: "${fancy_prefix} USB Power"
-    command_topic: seedship/${prefix}_$device_id/shoot_zone/usb_power
+    name: "${system_friendly} USB Power"
+    command_topic: seedship/${system}/${subsystem}_usb_power
     pin: GPIO4
     restore_mode: ALWAYS_ON
     id: relay5
 
   - platform: template
-    name: "${fancy_prefix} Heater"
+    name: "${system_friendly} Heater"
     id: heater
     #icon: "mdi:spray"
     lambda: |-
@@ -73,7 +64,7 @@ binary_sensor:
       number: GPIO13
       mode: INPUT_PULLUP
       inverted: True
-    name: "${fancy_prefix} Button"
+    name: "${system_friendly} Button"
     on_multi_click:
     - timing:
         - ON for at most 1s
@@ -119,34 +110,26 @@ binary_sensor:
             }
 
   - platform: status
-    name: "${fancy_prefix} Status"
+    name: "${system_friendly} Status"
 
 sensor:
-  - platform: wifi_signal
-    name: "${fancy_prefix} WiFi Signal"
-    update_interval: 60s
-
-  - platform: uptime
-    name: "${fancy_prefix} Uptime"
-
-
   - platform: mqtt_subscribe
-    name: "${fancy_prefix} Temperature"
-    id: shoot_zone_temperature
-    topic: seedship/${prefix}_$device_id/shoot_zone/temperature
+    name: "${system_friendly} Temperature"
+    id: ${subsystem}_temperature
+    topic: seedship/${system}/${subsystem}_temperature
     on_value:
       then:
         - if:
             condition:
               and:
                   - sensor.in_range:
-                      id: shoot_zone_temperature
+                      id: ${subsystem}_temperature
                       below: 19.0
                   - switch.is_off: heater
                   - mqtt.connected:
                   # Detect NaN
                   # Detect Unavalible. 
-                  #- shoot_zone_temperature_time < 1 minute. Or maybe short MQTT death and just detect connection to MQTT.
+                  #- ${subsystem}_temperature_time < 1 minute. Or maybe short MQTT death and just detect connection to MQTT.
             then:
               - switch.turn_on: heater
               #- delay: 5min
@@ -155,26 +138,26 @@ sensor:
             condition:
               and:
                   - sensor.in_range:
-                      id: shoot_zone_temperature
+                      id: ${subsystem}_temperature
                       above: 21.0
                   - switch.is_on: heater
                   # Detect NaN
                   # Detect Unavalible. 
-                  #- shoot_zone_temperature_time < 1 minute. Or maybe short MQTT death and just detect connection to MQTT.
+                  #- ${subsystem}_temperature_time < 1 minute. Or maybe short MQTT death and just detect connection to MQTT.
             then:
               - switch.turn_off: heater
     
   - platform: mqtt_subscribe
-    name: "${fancy_prefix} Humidity"
-    id: shoot_zone_humidity
-    topic: seedship/${prefix}_$device_id/shoot_zone/humidity
+    name: "${system_friendly} Humidity"
+    id: ${subsystem}_humidity
+    topic: seedship/${system}/${subsystem}_humidity
     on_value:
         then:
           - if:
               condition:
                 and:
                     - sensor.in_range:
-                        id: shoot_zone_humidity
+                        id: ${subsystem}_humidity
                         above: 75
                     - switch.is_off: dehumidifier
                     - mqtt.connected:
@@ -184,15 +167,22 @@ sensor:
               condition:
                 and:
                     - sensor.in_range:
-                        id: shoot_zone_humidity
+                        id: ${subsystem}_humidity
                         below: 60
                     - switch.is_on: dehumidifier
               then:
                 - switch.turn_off: dehumidifier
 
+  - !include templates/sensor/seedship_mode.yaml
+  - platform: wifi_signal
+    name: "${system_friendly} WiFi Signal"
+    update_interval: 60s
+  - platform: uptime
+    name: "${system_friendly} Uptime"
+
 text_sensor:
   - platform: version
-    name: "${fancy_prefix} ESPHome Version"  
+    name: "${system_friendly} ESPHome Version"  
 
 time:
   - platform: sntp
@@ -229,6 +219,9 @@ status_led:
   pin:
     number: GPIO2
 
+esphome: !include templates/esphome/esp01_1m.yaml
+wifi: !include secrets/wifi.yaml
+mqtt: !include templates/mqtt/mqtt.yaml
 logger:
   #level: VERBOSE
 ota:
