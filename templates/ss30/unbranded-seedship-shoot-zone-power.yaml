@@ -175,10 +175,10 @@ sensor:
 
   - !include templates/sensor/seedship_mode.yaml
   - platform: wifi_signal
-    name: "${system_friendly} WiFi Signal"
+    name: "${system_friendly} ${subsystem_friendly} WiFi Signal"
     update_interval: 60s
   - platform: uptime
-    name: "${system_friendly} Uptime"
+    name: "${system_friendly} ${subsystem_friendly} Uptime"
 
 text_sensor:
   - platform: version

@@ -211,6 +211,13 @@ sensor:
       #accuracy_decimals: 1
     address: 0x61
     update_interval: 5s
+    
+  - !include templates/sensor/seedship_mode.yaml
+  - platform: wifi_signal
+    name: "${system_friendly} ${subsystem_friendly} WiFi Signal"
+    update_interval: 60s
+  - platform: uptime
+    name: "${system_friendly} ${subsystem_friendly} Uptime"
 
 esphome: 
   name: $device_name 
