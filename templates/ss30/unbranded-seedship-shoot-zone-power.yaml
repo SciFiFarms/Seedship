@@ -88,26 +88,22 @@ binary_sensor:
         - OFF for at least 0.5s
       then:
         - logger.log: "Single-Clicked"
-        - lambda: |-
-            if(id(mode).state != $MODE_MANUAL_OVERRIDE)
-            {
-              id(mode).publish_state($MODE_MANUAL_OVERRIDE);
-            }
-            else
-            {
-              id(mode).publish_state($MODE_RUNNING);
-            }
-        - lambda: |-
-            id(lights).dose();
-        - lambda: |-
-            if(id(mode).state != $MODE_MANUAL_OVERRIDE)
-            {
-              id(mode).publish_state($MODE_MANUAL_OVERRIDE);
-            }
-            else
-            {
-              id(mode).publish_state($MODE_RUNNING);
-            }
+        - if:
+            condition: 
+              - lambda: |-
+                  return id(mode).state != $MODE_MANUAL_OVERRIDE;
+            then:
+              - lambda: |-
+                  id(mode).publish_state($MODE_MANUAL_OVERRIDE);
+                  App.scheduler.set_timeout(id(mode), "manual_mode_timeout", id(lights)->get_dosage(), [id(mode)](){
+                    if(id(mode).state == $MODE_MANUAL_OVERRIDE)
+                      id(mode).publish_state($MODE_RUNNING);
+                    });
+                  id(lights).dose();
+            else:
+              - lambda: |-
+                  id(lights).toggle();
+                  id(mode).publish_state($MODE_RUNNING);
 
   - platform: status
     name: "${system_friendly} Status"
@@ -195,7 +191,9 @@ time:
         then: 
           if:
             condition:
-              switch.is_off: lights
+              and:
+                - switch.is_off: lights
+                - lambda: return id(mode).state == $MODE_RUNNING;
             then:
               - delay: $delay
               - switch.turn_on: lights
@@ -210,7 +208,9 @@ time:
         then:
           if:
             condition:
-              switch.is_on: lights
+              and:
+                - switch.is_on: lights
+                - lambda: return id(mode).state == $MODE_RUNNING;
             then:
               - delay: $delay
               - switch.turn_off: lights
