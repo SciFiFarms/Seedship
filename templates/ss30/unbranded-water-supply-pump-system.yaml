@@ -90,16 +90,14 @@ binary_sensor:
           - logger.log: "Double-Clicked"
           - if:
               condition:
-                - script.is_running: fertigate_strawberries
+                - script.is_running: pump_system
               then:
-                - logger.log: Already mixing strawberry food. Canceling job.
-                - script.stop: fertigate_strawberries
+                - logger.log: Already pumping water. Canceling job.
+                - script.stop: pump_system
                 - lambda: |-
-                    id(part_a).cancel_dose();
-                    id(part_b).cancel_dose();
-                    id(ph).cancel_dose();
                     id(water).cancel_dose();
-                    id(mixers).cancel_dose();
+                    id(discharge).cancel_dose();
+                    id(water_line).cancel_dose();
 
       - timing:
           - ON for at most 1s
