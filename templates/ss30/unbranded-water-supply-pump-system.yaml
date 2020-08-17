@@ -20,47 +20,58 @@ script:
 
 switch:
   # Relay 1
+  # Peristaltic Pump
   - platform: dosage
-    name: "${system_friendly} ${subsystem_friendly} Part A"
-    command_topic: seedship/${system}/${subsystem}_part_a
-    pin: GPIO15
-    id: part_a
-    exact_timing: true
-    dosage: 5s
+    name: "${system_friendly} Water"
+    command_topic: seedship/${system}/water
+    pin: 
+      number: GPIO15
+      mode: OUTPUT
+    id: water
+    restore_mode: ALWAYS_OFF
+    dosage: 20min
 
   # Relay 2
+  # Solenoid. 
   - platform: dosage
-    name: "${system_friendly} Part B"
-    command_topic: seedship/${system}/${subsystem}_part_b
-    pin: GPIO5
-    id: part_b
-    exact_timing: true
-    dosage: 5s
+    name: "${system_friendly} Discharge"
+    command_topic: seedship/${system}/${subsystem}_discharge
+    pin: 
+      number: GPIO5
+      mode: OUTPUT
+    id: discharge
+    restore_mode: ALWAYS_OFF
+    dosage: 15s
 
   # Relay 3
+  # Solenoid. 
   - platform: dosage
-    name: "${system_friendly} ${subsystem_friendly} PH"
-    command_topic: seedship/${system}/${subsystem}_ph
-    pin: GPIO14
-    id: ph
-    exact_timing: true
-    dosage: 5s
+    name: "${system_friendly} Water Line"
+    command_topic: seedship/${system}/water_line
+    pin: 
+      number: GPIO14
+      mode: OUTPUT
+    id: water_line
+    restore_mode: ALWAYS_OFF
+    dosage: 10 min
 
   # Relay 4
-  - platform: dosage
-    name: "${system_friendly} ${subsystem_friendly} Water"
-    command_topic: seedship/${system}/${subsystem}_water
-    pin: GPIO12
-    id: water
-    dosage: 60s
+  - platform: gpio
+    name: "${system_friendly} ${subsystem_friendly} RO Pump"
+    command_topic: seedship/${system}/${subsystem}_ro_pump
+    pin: 
+      number: GPIO12
+    id: ro_pump
+    restore_mode: ALWAYS_ON
+    #dosage: 60s
 
   # Relay USB
-  - platform: dosage
-    name: "${system_friendly} ${subsystem_friendly} Mixers"
-    command_topic: seedship/${system}/${subsystem}_mixers
+  - platform: gpio
+    name: "${system_friendly} ${subsystem_friendly} Esp32 Power"
+    command_topic: seedship/${system}/${subsystem}_esp32_power
     pin: GPIO4
-    id: mixers
-    dosage: 600s
+    id: esp32_power
+    restore_mode: ALWAYS_ON
 
 binary_sensor:
   - platform: gpio
