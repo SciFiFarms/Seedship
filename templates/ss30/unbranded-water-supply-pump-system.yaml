@@ -106,29 +106,27 @@ binary_sensor:
           - logger.log: "Single-Clicked"
           - if:
               condition:
-                - script.is_running: fertigate_strawberries
+                - script.is_running: pump_system
               then:
-                - logger.log: Already mixing strawberry food. Exiting.
+                - logger.log: Already pumping water. Exitng.
               else:
-                - script.execute: fertigate_strawberries
+                - script.execute: pump_system
 
   - platform: status
     name: "${system_friendly} ${subsystem_friendly} Status"
 
-sensor:
   - platform: mqtt_subscribe
     id: strawberry
     topic: seedship/${system}/strawberries
     on_value:
       - if:
           condition:
-            - script.is_running: fertigate_strawberries
+            - script.is_running: pump_system
           then:
-            - logger.log: Already mixing strawberry food. Exiting.
+            - logger.log: Already pumping water. Exiting.
           else:
-            - logger.log: Fertigating
-            - script.execute: fertigate_strawberries
-
+            - logger.log: Running pump_system
+            - script.execute: pump_system
 
   - !include templates/sensor/seedship_mode.yaml
   - platform: wifi_signal
