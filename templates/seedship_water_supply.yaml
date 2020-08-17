@@ -77,7 +77,7 @@ sensor:
     name: $system_friendly Pump PSI
     state_topic: seedship/${system}/pump_psi
     icon: "mdi:water-pump"
-    update_interval: 1s
+    update_interval: 1000ms
     id: pump_psi
     attenuation: 11db
     expire_after: 60s
@@ -85,7 +85,7 @@ sensor:
     filters:
       - sliding_window_moving_average:
           window_size: 10
-          send_every: 1
+          send_every: 5
       - calibrate_linear:
         # 200 PSI sensor
         - 0.5 -> 0.0
@@ -120,7 +120,7 @@ sensor:
     name: $system_friendly Bus PSI
     state_topic: seedship/${system}/bus_psi
     icon: "mdi:water-pump"
-    update_interval: 1s
+    update_interval: 1000ms
     id: bus_psi
     attenuation: 11db
     expire_after: 60s
@@ -128,7 +128,7 @@ sensor:
     filters:
       - sliding_window_moving_average:
           window_size: 10
-          send_every: 1
+          send_every: 5
       - calibrate_linear:
         # 200 PSI sensor
         - 0.5 -> 0.0
