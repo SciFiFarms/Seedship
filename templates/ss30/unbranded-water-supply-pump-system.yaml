@@ -115,6 +115,40 @@ binary_sensor:
   - platform: status
     name: "${system_friendly} ${subsystem_friendly} Status"
 
+sensor:
+  - platform: mqtt_subscribe
+    id: ${system}_bus_psi
+    topic: seedship/${system}/bus_psi
+    on_value:
+      - if: 
+          condition:
+              and:
+                  - sensor.in_range:
+                      id: ${system}_bus_psi
+                      below: 80
+                  - switch.is_off: water_line
+                  - mqtt.connected:
+          then:
+            - lambda: 
+                id(water_line).dose();
+
+  - platform: mqtt_subscribe
+    id: ${system}_pump_psi
+    topic: seedship/${system}/pump_psi
+    on_value:
+      - if: 
+          condition:
+              and:
+                  - sensor.in_range:
+                      id: ${system}_pump_psi
+                      below: 65
+                  - switch.is_off: water_line
+                  - mqtt.connected:
+          then:
+            - mqtt.publish:
+                topic: seedship/${system}/strawberries
+                payload: 1
+
   - platform: mqtt_subscribe
     id: strawberry
     topic: seedship/${system}/strawberries
