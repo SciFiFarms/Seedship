@@ -7,25 +7,22 @@ script:
   - id: fertigate_strawberries
     then:
       - logger.log: "Starting Furtigation"
-      - delay: 10s
       - lambda: |-
-          // TODO: This may need to be split into individual scripts that get waited for. 
           id(mixers).dose();
-          id(water).dose();
+      - delay: 2min
+      - lambda: |-
           id(part_a).dose();
-      - delay: 120s
+      - wait_until:
+          switch.is_off: part_a
+      - delay: 5min
       - lambda: |-
           id(part_b).dose();
-      - delay: 120s
+      - wait_until:
+          switch.is_off: part_b
+      - delay: 2min
       - lambda: |-
           id(ph).dose();
       - delay: 120s
-      - lambda: |-
-          //# TODO: Have dose take an optional 0.0-1.0 value that scales the does?-
-          id(water).dose();
-          //# Confirm that the Ph/EC is correct.
-          //# MQTT message that results in mixing bucket emptying into supply 
-          //#     And cycling out air. 
 
 switch:
   # Relay 1
@@ -35,7 +32,7 @@ switch:
     pin: GPIO15
     id: part_a
     exact_timing: true
-    dosage: 5s
+    dosage: 10s
 
   # Relay 2
   - platform: dosage
@@ -44,7 +41,7 @@ switch:
     pin: GPIO5
     id: part_b
     exact_timing: true
-    dosage: 5s
+    dosage: 10s
 
   # Relay 3
   - platform: dosage
@@ -53,7 +50,7 @@ switch:
     pin: GPIO14
     id: ph
     exact_timing: true
-    dosage: 5s
+    dosage: 10s
 
   # Relay 4
   - platform: dosage
@@ -69,7 +66,7 @@ switch:
     command_topic: seedship/${system}/${subsystem}_mixers
     pin: GPIO4
     id: mixers
-    dosage: 600s
+    dosage: 30min
 
 binary_sensor:
   - platform: gpio
@@ -78,19 +75,36 @@ binary_sensor:
       mode: INPUT_PULLUP
       inverted: True
     name: "${system_friendly} ${subsystem_friendly} Button"
+    # TODO: Add logic for long click to toggle mixers.
     on_multi_click:
+      - timing:
+          - ON for at most 1s
+          - OFF for at most 0.3s
+          - ON for at most 1s
+          - OFF for at least 0.2s
+        then:
+          - logger.log: "Double-Clicked"
+          - if:
+              condition:
+                - script.is_running: fertigate_strawberries
+              then:
+                - logger.log: Already mixing strawberry food. Canceling job.
+                - script.stop: fertigate_strawberries
+                - lambda: |-
+                    id(part_a).cancel_dose();
+                    id(part_b).cancel_dose();
+                    id(ph).cancel_dose();
+                    id(water).cancel_dose();
+                    id(mixers).cancel_dose();
+
       - timing:
           - ON for at most 1s
           - OFF for at least 0.5s
         then:
           - logger.log: "Single-Clicked"
-          - if:
-              condition:
-                - script.is_running: fertigate_strawberries
-              then:
-                - logger.log: Already mixing strawberry food. Exiting.
-              else:
-                - script.execute: fertigate_strawberries
+          - mqtt.publish:
+              topic: seedship/${system}/strawberries
+              payload: 1
 
   - platform: status
     name: "${system_friendly} ${subsystem_friendly} Status"
