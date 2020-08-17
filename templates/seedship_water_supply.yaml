@@ -1,11 +1,5 @@
 substitutions:
-  device_name: !gen_device_name
-  device_id: !gen_device_id
-  mqtt_username: !gen_mqtt_username
-  mqtt_password: !gen_mqtt_password
-  # TODO: This should be generated? 
-  prefix: water_supply
-  fancy_prefix: Seedship Water Supply $device_id 
+  <<: !include templates/generated_substitutions.yaml
 
 wifi: !include secrets/wifi.yaml
 mqtt: !include templates/mqtt/mqtt.yaml
@@ -23,8 +17,8 @@ esphome:
 
 text_sensor:
   - platform: mqtt_subscribe
-    topic: seedship/${prefix}_$device_id/bus/psi_calibration
-    name: $fancy_prefix Bus PSI calibration 
+    topic: seedship/${system}/bus_psi_calibration
+    name: $system_friendly Bus PSI calibration 
     qos: 1
     on_value:
       then:
@@ -47,8 +41,8 @@ text_sensor:
             }
 
   - platform: mqtt_subscribe
-    topic: seedship/${prefix}_$device_id/pump/psi_calibration
-    name: $fancy_prefix Pump PSI calibration 
+    topic: seedship/${system}/pump_psi_calibration
+    name: $system_friendly Pump PSI calibration 
     qos: 1
     on_value:
       then:
@@ -72,16 +66,16 @@ text_sensor:
 
 sensor:
   - platform: mqtt_subscribe
-    name: $fancy_prefix PSI Manual
-    state_topic: seedship/${prefix}_$device_id/psi_manual
-    topic: seedship/${prefix}_$device_id/psi_manual_input
+    name: $system_friendly PSI Manual
+    state_topic: seedship/${system}/psi_manual
+    topic: seedship/${system}/psi_manual_input
     accuracy_decimals: 2
     unit_of_measurement: "PSI"
 
   - platform: adc
     pin: GPIO34
-    name: $fancy_prefix Pump PSI
-    state_topic: seedship/${prefix}_${device_id}/pump/psi
+    name: $system_friendly Pump PSI
+    state_topic: seedship/${system}/pump_psi
     icon: "mdi:water-pump"
     update_interval: 1s
     id: pump_psi
@@ -115,7 +109,7 @@ sensor:
             state: !lambda "return x;"
 
   - platform: template
-    name: $fancy_prefix Pump PSI Raw 
+    name: $system_friendly Pump PSI Raw 
     accuracy_decimals: 4
     unit_of_measurement: "raw"
     id: pump_raw_psi
@@ -123,8 +117,8 @@ sensor:
 #####
   - platform: adc
     pin: GPIO35
-    name: $fancy_prefix Bus PSI
-    state_topic: seedship/${prefix}_$device_id/bus/psi
+    name: $system_friendly Bus PSI
+    state_topic: seedship/${system}/bus_psi
     icon: "mdi:water-pump"
     update_interval: 1s
     id: bus_psi
@@ -157,7 +151,7 @@ sensor:
           state: !lambda "return x;"
 
   - platform: template
-    name: $fancy_prefix Bus PSI Raw 
+    name: $system_friendly Bus PSI Raw 
     accuracy_decimals: 4
     unit_of_measurement: "raw"
     id: bus_raw_psi
