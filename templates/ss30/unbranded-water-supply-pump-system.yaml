@@ -7,28 +7,16 @@ script:
   - id: pump_system
     then:
       - logger.log: "Starting Pump System"
-      - delay: 10s
       - lambda: |-
-          // START HERE: Seems like I should make a dose action? 
-          // More than anything, I need to come up with a way to cancel a dose. 
-
-          // TODO: This may need to be split into individual scripts that get waited for. 
-          id(mixers).dose();
           id(water).dose();
-          id(part_a).dose();
-      - delay: 120s
+      - wait_until:
+          switch.is_off: water
       - lambda: |-
-          id(part_b).dose();
-      - delay: 120s
+          id(discharge).dose();
+      - wait_until:
+          switch.is_off: discharge
       - lambda: |-
-          id(ph).dose();
-      - delay: 120s
-      - lambda: |-
-          //# TODO: Have dose take an optional 0.0-1.0 value that scales the does?-
-          id(water).dose();
-          //# Confirm that the Ph/EC is correct.
-          //# MQTT message that results in mixing bucket emptying into supply 
-          //#     And cycling out air. 
+          id(water_line).dose();
 
 switch:
   # Relay 1
@@ -132,63 +120,13 @@ sensor:
             - logger.log: Fertigating
             - script.execute: fertigate_strawberries
 
-  #- platform: template
-  #  id: my_output
-  #  #type: float
-  #  update_interval: 15s
-  #  lambda: 'return 42.0;'
-  #  force_update: true
-  #  on_value:
-  #    then:
-  #      - if:
-  #          condition:
-  #            - script.is_running: fertigate_strawberries
-  #          then:
-  #            - logger.log: Already mixing strawberry food. Exiting.
-  #          else:
-  #            - logger.log: Fertigating
-  #            - script.execute: fertigate_strawberries
-        #- logger.log: Already mixing strawberry food. Exiting.
-        #- script.execute: fertigate_strawberries
 
-  #- platform: mqtt_subscribe
-  #  id: ${subsystem}_psi
-  #  topic: seedship/${system}/${subsystem}_psi
-  #  on_value:
-  #    then:
-  #      - if:
-  #          condition:
-  #            and:
-  #                - sensor.in_range:
-  #                    id: ${subsystem}_psi
-  #                    below: 70
-  #                - switch.is_off: water_intake
-  #                - mqtt.connected:
-  #          then:
-  #            - switch.turn_on: water_intake
-  #            - delay: 3min
-  #            - switch.turn_off: water_intake
-
-  #- !include templates/sensor/seedship_mode.yaml
+  - !include templates/sensor/seedship_mode.yaml
   - platform: wifi_signal
     name: "${system_friendly} ${subsystem_friendly} WiFi Signal"
     update_interval: 60s
   - platform: uptime
     name: "${system_friendly} ${subsystem_friendly} Uptime"
-
-#time:
-#  #The below code ***Should*** turn on the nozzles every 10 minutes for 10 seconds. https://esphome.io/components/time.html?highlight=time#on-time for code that I used. 
-#  - platform: sntp
-#    #id: time
-#    # TODO: This should be read from an env var.
-#    timezone: America/Denver
-#    on_time:
-#      - seconds: 0
-#        minutes: /5
-#        then: 
-#          - delay: $delay
-#          - lambda: |-
-#              id(nozzles).dose();
 
 text_sensor:
   - platform: version
