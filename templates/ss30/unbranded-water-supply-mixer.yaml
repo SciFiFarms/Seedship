@@ -31,8 +31,7 @@ switch:
     command_topic: seedship/${system}/part_a
     pin: GPIO15
     id: part_a
-    exact_timing: true
-    dosage: 10s
+    dosage: 20s
 
   # Relay 2
   - platform: dosage
@@ -40,8 +39,7 @@ switch:
     command_topic: seedship/${system}/part_b
     pin: GPIO5
     id: part_b
-    exact_timing: true
-    dosage: 10s
+    dosage: 20s
 
   # Relay 3
   - platform: dosage
@@ -56,8 +54,8 @@ switch:
     name: "${system_friendly} PH Down"
     command_topic: seedship/${system}/ph_down
     pin: GPIO12
-    id: water
-    dosage: 60s
+    id: ph_down
+    dosage: 10s
 
   # Relay USB
   - platform: dosage
@@ -65,7 +63,7 @@ switch:
     command_topic: seedship/${system}/mixers
     pin: GPIO4
     id: mixers
-    dosage: 30min
+    dosage: 40min
 
 binary_sensor:
   - platform: gpio

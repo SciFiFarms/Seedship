@@ -29,7 +29,7 @@ switch:
       mode: OUTPUT
     id: water
     restore_mode: ALWAYS_OFF
-    dosage: 20min
+    dosage: 30min
 
   # Relay 2
   # Solenoid. 
@@ -53,7 +53,7 @@ switch:
       mode: OUTPUT
     id: water_line
     restore_mode: ALWAYS_OFF
-    dosage: 10 min
+    dosage: 30s
 
   # Relay 4
   - platform: gpio
