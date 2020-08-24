@@ -57,8 +57,8 @@ switch:
 
   # Relay 4
   - platform: gpio
-    name: "${system_friendly} ${subsystem_friendly} RO Pump"
-    command_topic: seedship/${system}/${subsystem}_ro_pump
+    name: "${system_friendly} RO Pump"
+    command_topic: seedship/${system}/ro_pump
     pin: 
       number: GPIO12
     id: ro_pump
@@ -104,14 +104,11 @@ binary_sensor:
           - OFF for at least 0.5s
         then:
           - logger.log: "Single-Clicked"
-          - if:
-              condition:
-                - script.is_running: pump_system
-              then:
-                - logger.log: Already pumping water. Exitng.
-              else:
-                - script.execute: pump_system
 
+  - platform: status
+    name: "${system_friendly} ${subsystem_friendly} Status"
+
+sensor:
   - platform: mqtt_subscribe
     id: ${system}_bus_psi
     topic: seedship/${system}/bus_psi
@@ -198,8 +195,6 @@ sensor:
     update_interval: 60s
   - platform: uptime
     name: "${system_friendly} ${subsystem_friendly} Uptime"
-  - platform: status
-    name: "${system_friendly} ${subsystem_friendly} Status"
 
 text_sensor:
   - platform: version

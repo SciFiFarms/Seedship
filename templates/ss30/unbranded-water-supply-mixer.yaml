@@ -21,14 +21,14 @@ script:
           switch.is_off: part_b
       - delay: 2min
       - lambda: |-
-          id(ph).dose();
+          id(ph_up).dose();
       - delay: 120s
 
 switch:
   # Relay 1
   - platform: dosage
-    name: "${system_friendly} ${subsystem_friendly} Part A"
-    command_topic: seedship/${system}/${subsystem}_part_a
+    name: "${system_friendly} Part A"
+    command_topic: seedship/${system}/part_a
     pin: GPIO15
     id: part_a
     exact_timing: true
@@ -37,7 +37,7 @@ switch:
   # Relay 2
   - platform: dosage
     name: "${system_friendly} Part B"
-    command_topic: seedship/${system}/${subsystem}_part_b
+    command_topic: seedship/${system}/part_b
     pin: GPIO5
     id: part_b
     exact_timing: true
@@ -45,25 +45,24 @@ switch:
 
   # Relay 3
   - platform: dosage
-    name: "${system_friendly} ${subsystem_friendly} PH"
-    command_topic: seedship/${system}/${subsystem}_ph
+    name: "${system_friendly} PH Up"
+    command_topic: seedship/${system}/ph_up
     pin: GPIO14
-    id: ph
-    exact_timing: true
+    id: ph_up
     dosage: 10s
 
   # Relay 4
   - platform: dosage
-    name: "${system_friendly} ${subsystem_friendly} Water"
-    command_topic: seedship/${system}/${subsystem}_water
+    name: "${system_friendly} PH Down"
+    command_topic: seedship/${system}/ph_down
     pin: GPIO12
     id: water
     dosage: 60s
 
   # Relay USB
   - platform: dosage
-    name: "${system_friendly} ${subsystem_friendly} Mixers"
-    command_topic: seedship/${system}/${subsystem}_mixers
+    name: "${system_friendly} Mixers"
+    command_topic: seedship/${system}/mixers
     pin: GPIO4
     id: mixers
     dosage: 30min
@@ -93,10 +92,9 @@ binary_sensor:
                 - lambda: |-
                     id(part_a).cancel_dose();
                     id(part_b).cancel_dose();
-                    id(ph).cancel_dose();
-                    id(water).cancel_dose();
+                    id(ph_up).cancel_dose();
+                    id(ph_down).cancel_dose();
                     id(mixers).cancel_dose();
-
       - timing:
           - ON for at most 1s
           - OFF for at least 0.5s
@@ -116,7 +114,8 @@ sensor:
     on_value:
       - if:
           condition:
-            - script.is_running: fertigate_strawberries
+            and:
+                - script.is_running: fertigate_strawberries
           then:
             - logger.log: Already mixing strawberry food. Exiting.
           else:
