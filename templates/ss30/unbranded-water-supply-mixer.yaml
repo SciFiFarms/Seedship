@@ -74,6 +74,21 @@ binary_sensor:
     name: "${system_friendly} ${subsystem_friendly} Button"
     # TODO: Add logic for long click to toggle mixers.
     on_multi_click:
+      - timing: 
+          - ON for at least 3s
+        then:
+          - logger.log: "Long clicked"
+          - if:
+              condition: 
+                - lambda: |-
+                    return id(mode).state == $MODE_MANUAL_OVERRIDE;
+              then:
+                - lambda: |-
+                    id(mode).publish_state($MODE_RUNNING);
+              else:
+                - lambda: |-
+                    id(mode).publish_state($MODE_MANUAL_OVERRIDE);
+
       - timing:
           - ON for at most 1s
           - OFF for at most 0.3s
@@ -114,6 +129,8 @@ sensor:
           condition:
             and:
                 - script.is_running: fertigate_strawberries
+                - lambda: |-
+                    return id(mode).state == $MODE_RUNNING;
           then:
             - logger.log: Already mixing strawberry food. Exiting.
           else:

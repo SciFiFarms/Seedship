@@ -81,6 +81,20 @@ binary_sensor:
       inverted: True
     name: "${system_friendly} ${subsystem_friendly} Button"
     on_multi_click:
+      - timing: 
+          - ON for at least 3s
+        then:
+          - if:
+              condition: 
+                - lambda: |-
+                    return id(mode).state == $MODE_MANUAL_OVERRIDE;
+              then:
+                - lambda: |-
+                    id(mode).publish_state($MODE_RUNNING);
+              else:
+                - lambda: |-
+                    id(mode).publish_state($MODE_MANUAL_OVERRIDE);
+
       - timing:
           - ON for at most 1s
           - OFF for at most 0.3s
@@ -90,14 +104,21 @@ binary_sensor:
           - logger.log: "Double-Clicked"
           - if:
               condition:
-                - script.is_running: pump_system
-              then:
-                - logger.log: Already pumping water. Canceling job.
-                - script.stop: pump_system
                 - lambda: |-
-                    id(water).cancel_dose();
-                    id(discharge).cancel_dose();
-                    id(water_line).cancel_dose();
+                    return id(mode).state == $MODE_RUNNING;
+              then:
+                - if: 
+                    condition:
+                      - script.is_running: pump_system
+                    then:
+                      - logger.log: Already pumping water. Canceling job.
+                      - script.stop: pump_system
+                      - lambda: |-
+                          id(water).cancel_dose();
+                          id(discharge).cancel_dose();
+                          id(water_line).cancel_dose();
+                    else:
+                      - script.execute: pump_system
 
       - timing:
           - ON for at most 1s
@@ -136,24 +157,8 @@ sensor:
                       id: ${system}_pump_psi
                       below: 65
                   - switch.is_off: water_line
-                  - mqtt.connected:
-          then:
-            - mqtt.publish:
-                topic: seedship/${system}/strawberries
-                payload: 1
-
-sensor:
-  - platform: mqtt_subscribe
-    id: ${system}_bus_psi
-    topic: seedship/${system}/bus_psi
-    on_value:
-      - if: 
-          condition:
-              and:
-                  - sensor.in_range:
-                      id: ${system}_bus_psi
-                      below: 80
-                  - switch.is_off: water_line
+                  - lambda: |-
+                      return id(mode).state == $MODE_RUNNING;
                   - mqtt.connected:
           then:
             - lambda: 
@@ -168,8 +173,10 @@ sensor:
               and:
                   - sensor.in_range:
                       id: ${system}_pump_psi
-                      below: 65
-                  - switch.is_off: water_line
+                  - not: 
+                      script.is_running: pump_system
+                  - lambda: |-
+                      return id(mode).state == $MODE_RUNNING;
                   - mqtt.connected:
           then:
             - mqtt.publish:
