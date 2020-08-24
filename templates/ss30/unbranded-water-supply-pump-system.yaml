@@ -7,16 +7,17 @@ script:
   - id: pump_system
     then:
       - logger.log: "Starting Pump System"
+      - switch.turn_off: water_line
       - lambda: |-
           id(water).dose();
-      - wait_until:
-          switch.is_off: water
+      - delay: 2 min
       - lambda: |-
           id(discharge).dose();
       - wait_until:
-          switch.is_off: discharge
+          switch.is_off: water
       - lambda: |-
-          id(water_line).dose();
+          id(water_line).dose_for_seconds(600);
+      - delay: 10min
 
 switch:
   # Relay 1
@@ -125,6 +126,9 @@ binary_sensor:
           - OFF for at least 0.5s
         then:
           - logger.log: "Single-Clicked"
+          - switch.turn_off: water_line
+          - lambda: |-
+              id(discharge).dose();
 
   - platform: status
     name: "${system_friendly} ${subsystem_friendly} Status"
@@ -140,23 +144,11 @@ sensor:
                   - sensor.in_range:
                       id: ${system}_bus_psi
                       below: 80
-                  - switch.is_off: water_line
-                  - mqtt.connected:
-          then:
-            - lambda: 
-                id(water_line).dose();
-
-  - platform: mqtt_subscribe
-    id: ${system}_pump_psi
-    topic: seedship/${system}/pump_psi
-    on_value:
-      - if: 
-          condition:
-              and:
                   - sensor.in_range:
                       id: ${system}_pump_psi
-                      below: 65
+                      above: 75
                   - switch.is_off: water_line
+                  - switch.is_off: water
                   - lambda: |-
                       return id(mode).state == $MODE_RUNNING;
                   - mqtt.connected:
@@ -173,6 +165,7 @@ sensor:
               and:
                   - sensor.in_range:
                       id: ${system}_pump_psi
+                      below: 60
                   - not: 
                       script.is_running: pump_system
                   - lambda: |-
