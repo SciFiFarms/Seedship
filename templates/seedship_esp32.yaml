@@ -30,30 +30,6 @@ light:
   lights:
     - name: "${system_friendly} Lights"
 
-text_sensor:
-  - platform: mqtt_subscribe
-    topic: seedship/${system}/root_zone_psi_calibration
-    name: ${system_friendly} Root Zone PSI calibration 
-    qos: 1
-    on_value:
-      then:
-        - lambda: |-
-            static const char *TAG = "custom_sensor";
-            CalibrateLinearFilter* filter = id(psi).get_filter<CalibrateLinearFilter>();
-
-            if(filter == nullptr) {
-              ESP_LOGW(TAG, "Could not find filter.");
-            } else {
-              ESP_LOGV(TAG, "Found filter! %s", typeid (filter).name());
-              json::parse_json(x, 
-                [filter](JsonObject &root) { 
-                    ESP_LOGW(TAG, "JSON PARSED");
-                    if (root.containsKey("slope"))
-                      filter->set_slope(root["slope"]);
-                    if (root.containsKey("bias"))
-                      filter->set_bias(root["bias"]);
-              });
-            }
 sensor:
   - platform: adc
     pin: GPIO34
@@ -76,6 +52,11 @@ sensor:
           #alpha: .1
           #send_every: 1
       - calibrate_linear:
+          raw_sensor: 
+            name: $system_friendly Root Zone PSI Raw
+          calibration_sensor: 
+              name: $system_friendly Bus PSI Calibration
+              topic: seedship/${system}/root_zone_psi_calibration
         ## 300 PSI sensor
         #- 0.5 -> 0.0
         #- 0.89 -> 25.4
@@ -91,16 +72,6 @@ sensor:
         - 3.09 -> 103.4
         - 3.28 -> 109.2
     unit_of_measurement: "PSI"
-    on_raw_value:
-      then: 
-        - sensor.template.publish:
-            id: raw_psi
-            state: !lambda "return x;"
-  - platform: template
-    name: $system_friendly Root Zone PSI Raw 
-    accuracy_decimals: 4
-    unit_of_measurement: "raw"
-    id: raw_psi
 
   - platform: dht
     model: DHT22

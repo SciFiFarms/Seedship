@@ -1,4 +1,5 @@
 substitutions:
+  #debug: !debug
   <<: !include templates/generated_substitutions.yaml
 
 wifi: !include secrets/wifi.yaml
@@ -14,55 +15,6 @@ esphome:
   #arduino_version: 1.0.4
   #includes:
   #  - custom_components/dual_pot/dual_pot.h
-
-text_sensor:
-  - platform: mqtt_subscribe
-    topic: seedship/${system}/bus_psi_calibration
-    name: $system_friendly Bus PSI calibration 
-    qos: 1
-    on_value:
-      then:
-        - lambda: |-
-            static const char *TAG = "custom_sensor";
-            CalibrateLinearFilter* filter = id(bus_psi).get_filter<CalibrateLinearFilter>();
-
-            if(filter == nullptr) {
-              ESP_LOGW(TAG, "Could not find filter.");
-            } else {
-              ESP_LOGV(TAG, "Found filter! %s", typeid (filter).name());
-              json::parse_json(x, 
-                [filter](JsonObject &root) { 
-                    ESP_LOGW(TAG, "JSON PARSED");
-                    if (root.containsKey("slope"))
-                      filter->set_slope(root["slope"]);
-                    if (root.containsKey("bias"))
-                      filter->set_bias(root["bias"]);
-              });
-            }
-
-  - platform: mqtt_subscribe
-    topic: seedship/${system}/pump_psi_calibration
-    name: $system_friendly Pump PSI calibration 
-    qos: 1
-    on_value:
-      then:
-        - lambda: |-
-            static const char *TAG = "custom_sensor";
-            CalibrateLinearFilter* filter = id(pump_psi).get_filter<CalibrateLinearFilter>();
-
-            if(filter == nullptr) {
-              ESP_LOGW(TAG, "Could not find filter.");
-            } else {
-              ESP_LOGV(TAG, "Found filter! %s", typeid (filter).name());
-              json::parse_json(x, 
-                [filter](JsonObject &root) { 
-                    ESP_LOGW(TAG, "JSON PARSED");
-                    if (root.containsKey("slope"))
-                      filter->set_slope(root["slope"]);
-                    if (root.containsKey("bias"))
-                      filter->set_bias(root["bias"]);
-              });
-            }
 
 sensor:
   - platform: mqtt_subscribe
@@ -88,6 +40,12 @@ sensor:
           send_every: 5
       - calibrate_linear:
         # 200 PSI sensor
+          raw_sensor: 
+            name: $system_friendly Pump PSI Raw
+            id: pump_psi_raw
+          calibration_sensor: 
+              name: $system_friendly Pump PSI Calibration
+              topic: seedship/${system}/pump_psi_calibration
         - 0.5 -> 0.0
         - 1.14 -> 25.8
         - 1.37 -> 35.8
@@ -102,19 +60,7 @@ sensor:
         #- 2.1 -> 103.3
         #- 2.25 -> 110.4
     unit_of_measurement: "PSI"
-    on_raw_value:
-      then: 
-        - sensor.template.publish:
-            id: pump_raw_psi
-            state: !lambda "return x;"
 
-  - platform: template
-    name: $system_friendly Pump PSI Raw 
-    accuracy_decimals: 4
-    unit_of_measurement: "raw"
-    id: pump_raw_psi
-
-#####
   - platform: adc
     pin: GPIO35
     name: $system_friendly Bus PSI
@@ -130,6 +76,12 @@ sensor:
           window_size: 10
           send_every: 5
       - calibrate_linear:
+          raw_sensor: 
+            name: $system_friendly Bus PSI Raw
+            id: bus_psi_raw
+          calibration_sensor: 
+              name: $system_friendly Bus PSI Calibration
+              topic: seedship/${system}/bus_psi_calibration
         # 200 PSI sensor
         - 0.5 -> 0.0
         - 1.14 -> 25.8
@@ -145,19 +97,6 @@ sensor:
         #- 2.1 -> 103.3
         #- 2.25 -> 110.4
     unit_of_measurement: "PSI"
-    on_raw_value:
-      - sensor.template.publish:
-          id: bus_raw_psi
-          state: !lambda "return x;"
-
-  - platform: template
-    name: $system_friendly Bus PSI Raw 
-    accuracy_decimals: 4
-    unit_of_measurement: "raw"
-    id: bus_raw_psi
-
-
-####
 
 # Enable logging
 logger:
