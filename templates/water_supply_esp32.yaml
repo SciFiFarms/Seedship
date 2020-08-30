@@ -11,7 +11,7 @@ esphome:
   board: esp32doit-devkit-v1
   # If it builds in the /config folder like is default, then there arise
   # conflicts between the server and my machine. /tmp/esphome-build is a volume.
-  build_path: /tmp/esphome-build/$device_name/
+  build_path: /tmp/esphome-builds/$device_name/
   #arduino_version: 1.0.4
   #includes:
   #  - custom_components/dual_pot/dual_pot.h
