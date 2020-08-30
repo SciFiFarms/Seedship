@@ -57,20 +57,21 @@ sensor:
           calibration_sensor: 
               name: $system_friendly Bus PSI Calibration
               topic: seedship/${system}/root_zone_psi_calibration
-        ## 300 PSI sensor
-        #- 0.5 -> 0.0
-        #- 0.89 -> 25.4
-        #- 1.35 -> 55
-        #- 2.0 -> 93.3
-        #- 2.1 -> 103.3
-        #- 2.25 -> 110.4
-        # 200 PSI sensor
-        - 0.5 -> 0.0
-        - 1.14 -> 25.8
-        - 1.37 -> 35.8
-        - 1.85 -> 55.5
-        - 3.09 -> 103.4
-        - 3.28 -> 109.2
+          datapoints:
+            # 200 PSI sensor
+            - 0.5 -> 0.0
+            - 1.14 -> 25.8
+            - 1.37 -> 35.8
+            - 1.85 -> 55.5
+            - 3.09 -> 103.4
+            - 3.28 -> 109.2
+            ## 300 PSI sensor
+            #- 0.5 -> 0.0
+            #- 0.89 -> 25.4
+            #- 1.35 -> 55
+            #- 2.0 -> 93.3
+            #- 2.1 -> 103.3
+            #- 2.25 -> 110.4
     unit_of_measurement: "PSI"
 
   - platform: dht
