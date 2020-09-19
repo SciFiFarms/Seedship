@@ -1,0 +1,114 @@
+substitutions:
+  #debug: !debug
+  <<: !include templates/generated_substitutions.yaml
+
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: GPIO13
+      inverted: True
+    name: "${system_friendly} Button"
+    on_press:
+      then:
+        - switch.toggle: relay
+    
+switch:
+- platform: gpio
+  name: "${system_friendly} Relay"
+  pin: GPIO4
+  restore_mode: ALWAYS_ON
+  id: relay
+# TODO: Make one of these a status light.
+- platform: gpio
+  name: "${system_friendly} LED Blue"
+  pin: GPIO2
+  inverted: True
+  restore_mode: ALWAYS_OFF
+- platform: gpio
+  name: "${system_friendly} LED Red"
+  pin: GPIO0
+  inverted: True
+  restore_mode: ALWAYS_OFF
+
+sensor:
+  - platform: hlw8012
+    sel_pin:
+      number: GPIO12
+      inverted: True
+    cf_pin: GPIO05
+    cf1_pin: GPIO14
+    id: hlw
+    current:
+      name: "${system_friendly} Amperage"
+      unit_of_measurement: A
+      expire_after: 75s
+      force_update: true
+      filters:
+        - calibrate_linear:
+            raw_sensor: 
+              name: $system_friendly Power Current Calibration
+              id: current_raw
+            calibration_sensor: 
+                name: $system_friendly Power Current Calibration
+                topic: seedship/${system}/power_current_calibration
+            datapoints:
+              - 1.0 -> 1.0
+              - 2.0 -> 2.0
+    voltage:
+      name: "${system_friendly} Voltage"
+      unit_of_measurement: V
+      expire_after: 75s
+      force_update: true
+      filters:
+        - calibrate_linear:
+            raw_sensor: 
+              name: $system_friendly Power Voltage Calibration
+              id: voltage_raw
+            calibration_sensor: 
+                name: $system_friendly Power Voltage Calibration
+                topic: seedship/${system}/power_voltage_calibration
+            datapoints:
+              - 1.0 -> 1.0
+              - 2.0 -> 2.0
+    power:
+      name: "${system_friendly} Wattage"
+      unit_of_measurement: W
+      id: "wattage"
+      expire_after: 75s
+      force_update: true
+      filters:
+        - calibrate_linear:
+            raw_sensor: 
+              name: $system_friendly Power Wattage Calibration
+              id: wattage_raw
+            calibration_sensor: 
+                name: $system_friendly Power Wattage Calibration
+                topic: seedship/${system}/power_wattage_calibration
+            datapoints:
+              - 1.0 -> 1.0
+              - 2.0 -> 2.0
+    change_mode_every: 15
+    update_interval: 500ms
+
+  - platform: total_daily_energy
+    name: "${system_friendly} Total Daily Energy"
+    power_id: "wattage"
+    filters:
+        # Multiplication factor from W to kW is 0.001
+        - multiply: 0.001
+    unit_of_measurement: kWh
+
+  # Extra sensor to keep track of plug uptime
+  - platform: uptime
+    name: ${plug_name} Uptime Sensor
+
+time:
+  - platform: sntp
+    id: sntp_time
+    timezone: America/Denver
+
+esphome: !include templates/esphome/esp8285.yaml
+wifi: !include secrets/wifi.yaml
+mqtt: !include templates/mqtt/mqtt.yaml
+logger:
+ota: 
