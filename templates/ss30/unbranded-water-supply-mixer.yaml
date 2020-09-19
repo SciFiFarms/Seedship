@@ -32,6 +32,7 @@ switch:
     pin: GPIO15
     id: part_a
     dosage: 20s
+    restore_mode: ALWAYS_OFF
 
   # Relay 2
   - platform: dosage
@@ -40,6 +41,7 @@ switch:
     pin: GPIO5
     id: part_b
     dosage: 20s
+    restore_mode: ALWAYS_OFF
 
   # Relay 3
   - platform: dosage
@@ -48,6 +50,7 @@ switch:
     pin: GPIO14
     id: ph_up
     dosage: 10s
+    restore_mode: ALWAYS_OFF
 
   # Relay 4
   - platform: dosage
@@ -56,14 +59,18 @@ switch:
     pin: GPIO12
     id: ph_down
     dosage: 10s
+    restore_mode: ALWAYS_OFF
 
   # Relay USB
   - platform: dosage
     name: "${system_friendly} Mixers"
     command_topic: seedship/${system}/mixers
-    pin: GPIO4
+    pin: 
+      number: GPIO4
+      mode: OUTPUT
     id: mixers
     dosage: 40min
+    restore_mode: ALWAYS_OFF
 
 binary_sensor:
   - platform: gpio
