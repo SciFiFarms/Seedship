@@ -16,7 +16,17 @@ esphome:
   #includes:
   #  - custom_components/dual_pot/dual_pot.h
 
+i2c:
+  # This one is for CO2
+  - id: scd30_bus
+    sda: GPIO27
+    scl: GPIO26
+    scan: False
+    frequency: 50kHz
+
 sensor:
+  - !include templates/sensor/seedship_mode.yaml
+
   - platform: mqtt_subscribe
     name: $system_friendly PSI Manual
     state_topic: seedship/${system}/psi_manual
@@ -29,11 +39,11 @@ sensor:
     name: $system_friendly Pump PSI
     state_topic: seedship/${system}/pump_psi
     icon: "mdi:water-pump"
-    update_interval: 1000ms
     id: pump_psi
-    attenuation: 11db
+    update_interval: 1s
     expire_after: 60s
     force_update: true
+    attenuation: 11db
     filters:
       - sliding_window_moving_average:
           window_size: 10
@@ -67,11 +77,11 @@ sensor:
     name: $system_friendly Bus PSI
     state_topic: seedship/${system}/bus_psi
     icon: "mdi:water-pump"
-    update_interval: 1000ms
     id: bus_psi
-    attenuation: 11db
+    update_interval: 1s
     expire_after: 60s
     force_update: true
+    attenuation: 11db
     filters:
       - sliding_window_moving_average:
           window_size: 10
@@ -99,6 +109,29 @@ sensor:
             #- 2.1 -> 103.3
             #- 2.25 -> 110.4
     unit_of_measurement: "PSI"
+
+  - platform: scd30
+    i2c_id: scd30_bus
+    co2:
+      name: "${system_friendly} Ambient CO2"
+      state_topic: seedship/${system}/ambient_co2
+      expire_after: 5 min
+      force_update: true
+      accuracy_decimals: 0
+    temperature:
+      name: "${system_friendly} Ambient CO2 Temperature"
+      state_topic: seedship/${system}/ambient_co2_temperature
+      expire_after: 5 min
+      force_update: true
+      accuracy_decimals: 1
+    humidity:
+      name: "${system_friendly} Ambient CO2 Humidity"
+      state_topic: seedship/${system}/ambient_co2_humidity
+      expire_after: 5 min
+      force_update: true
+      accuracy_decimals: 1
+    address: 0x61
+    update_interval: 1 min
 
 # Enable logging
 logger:
