@@ -54,7 +54,7 @@ switch:
       mode: OUTPUT
     id: water_line
     restore_mode: ALWAYS_OFF
-    dosage: 30s
+    dosage: 3min
 
   # Relay 4
   - platform: gpio
@@ -143,29 +143,30 @@ sensor:
               and:
                   - sensor.in_range:
                       id: ${system}_bus_psi
-                      below: 80
+                      # This needs to be slightly below the turn on point for the pump.
+                      below: 72
                   - sensor.in_range:
                       id: ${system}_pump_psi
-                      above: 75
+                      # This is to prevent the line from opening when the water supply is under maintenance. 
+                      above: 65
                   - switch.is_off: water_line
                   - switch.is_off: water
                   - lambda: |-
                       return id(mode).state == $MODE_RUNNING;
                   - mqtt.connected:
           then:
+            - logger.log: "Opening water_line"
             - lambda: 
                 id(water_line).dose();
-
-  - platform: mqtt_subscribe
-    id: ${system}_pump_psi
-    topic: seedship/${system}/pump_psi
-    on_value:
+            - delay: !lambda
+                return id(water_line).get_dosage();
+            - logger.log: "Closing water_line"
       - if: 
           condition:
               and:
                   - sensor.in_range:
-                      id: ${system}_pump_psi
-                      below: 60
+                      id: ${system}_bus_psi
+                      below: 68.5
                   - not: 
                       script.is_running: pump_system
                   - lambda: |-
@@ -175,6 +176,13 @@ sensor:
             - mqtt.publish:
                 topic: seedship/${system}/strawberries
                 payload: 1
+            - logger.log: "Starting strawberry delay"
+            - delay: 40 min
+            - logger.log: "Finished strawberry delay"
+
+  - platform: mqtt_subscribe
+    id: ${system}_pump_psi
+    topic: seedship/${system}/pump_psi
 
   - platform: mqtt_subscribe
     id: strawberry
