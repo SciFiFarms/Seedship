@@ -115,14 +115,14 @@ switch:
     dosage: 3min
 
   # Relay 4
-  - platform: gpio
-    name: "${system_friendly} RO Pump"
-    command_topic: seedship/${system}/ro_pump
-    pin: 
+  - platform: dosage
+    name: "${system_friendly} Drainage Pump"
+    command_topic: seedship/${system}/drainage_pump
+    pin:
       number: GPIO12
-    id: ro_pump
-    restore_mode: ALWAYS_ON
-    #dosage: 60s
+    id: drainage_pump
+    restore_mode: ALWAYS_OFF
+    dosage: 10 min
 
   # Relay USB
   - platform: gpio
@@ -278,6 +278,18 @@ sensor:
 text_sensor:
   - platform: version
     name: "${system_friendly} ${subsystem_friendly} ESPHome Version"  
+
+  - platform: mqtt_subscribe
+    name: "${system_friendly} Drainage Bus"
+    id: drainage_bus
+    topic: seedship/drainage/owner
+
+  - platform: mqtt_subscribe
+    name: "${system_friendly} Drainage Bus Requests"
+    id: drainage_bus_request
+    topic: seedship/drainage/request_access
+    on_value: 
+      - script.execute: drain
 
 status_led:
   pin:
