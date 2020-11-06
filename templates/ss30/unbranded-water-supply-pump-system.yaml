@@ -5,19 +5,77 @@ substitutions:
 
 script:
   - id: pump_system
+    mode: single
     then:
       - logger.log: "Starting Pump System"
       - switch.turn_off: water_line
       - lambda: |-
           id(water).dose();
-      - delay: 2 min
-      - lambda: |-
-          id(discharge).dose();
       - wait_until:
           switch.is_off: water
-      - lambda: |-
-          id(water_line).dose_for_seconds(600);
-      - delay: 10min
+      - script.execute: repressurize
+      - script.wait: repressurize
+
+  - id: drain
+    # TODO: This works fine as long as there aren't any conflicts. Once those start happening an actual queue will be needed. 
+    # I think the tricky part is going to be getting and storing drainage_bus_request state to give each run a different value. 
+    # Basically, how to queue with state. 
+    mode: single
+    then:
+      - logger.log: "Changing drainage bus ownership."
+      - mqtt.publish:
+          topic: seedship/drainage/owner
+          payload: !lambda |-
+              return id(drainage_bus_request)->state;
+      - switch.turn_on: drainage_pump
+      # Have to give the message time to work through the network and get back to this device.q`
+      - delay: 10s 
+      - wait_until:
+          condition:
+            text_sensor.state:
+              id: drainage_bus
+              state: "idle"
+      - switch.turn_off: drainage_pump
+
+  - id: repressurize
+    mode: single
+    then:
+      - logger.log: "Repressurizing."
+      - if:
+          condition:
+            sensor.in_range:
+              id: pump_psi
+              below: 90
+          # If it's a fresh batch, it'll take extra long to pressurize.
+          then:
+            # Increase the dose X3.
+            - lambda: |-
+                id(discharge).dose(3);
+          else:
+            - lambda: |-
+                id(discharge).dose();
+      # Reduce the delay by 1 second to allow time for the water_line to turn on.
+      - delay: !lambda |-
+          return id(discharge).get_dosage() - 1000;
+      - wait_until:
+          lambda: 
+              return id(bus_psi)->state < id(pump_psi)->state;
+      - if:
+          condition:
+            sensor.in_range:
+              id: bus_psi
+              below: 65
+          # If it's a fresh batch, it'll take extra long to pressurize.
+          then:
+            - lambda: 
+                # Increase the dose X3.
+                id(water_line).dose(3);
+          else:
+            - lambda: |-
+                id(water_line).dose();
+      - wait_until:
+          switch.is_off: water_line
+      - logger.log: "Finished pressurizing."
 
 switch:
   # Relay 1
@@ -145,30 +203,42 @@ sensor:
                       id: ${system}_bus_psi
                       # This needs to be slightly below the turn on point for the pump.
                       below: 72
-                  - sensor.in_range:
-                      id: ${system}_pump_psi
-                      # This is to prevent the line from opening when the water supply is under maintenance. 
-                      above: 65
                   - switch.is_off: water_line
                   - switch.is_off: water
+                  - not:
+                    - script.is_running: pump_system
+                  - not:
+                    - script.is_running: repressurize
                   - lambda: |-
                       return id(mode).state == $MODE_RUNNING;
                   - mqtt.connected:
           then:
             - logger.log: "Opening water_line"
-            - lambda: 
-                id(water_line).dose();
-            - delay: !lambda
-                return id(water_line).get_dosage();
-            - logger.log: "Closing water_line"
+            - script.execute: repressurize
+            - script.wait: repressurize
+            - logger.log: "water_line closed. "
+
+            # If it's not to pressure by now, a new batch is needed. 
+            - if:
+                condition:
+                  sensor.in_range:
+                    below: 90
+                    id: bus_psi
+                then:
+                  - mqtt.publish:
+                      # TODO: This should be a sensor reserving the mixing system. 
+                      topic: seedship/${system}/strawberries
+                      payload: 1
+
       - if: 
           condition:
               and:
                   - sensor.in_range:
-                      id: ${system}_bus_psi
-                      below: 68.5
+                      below: 64
                   - not: 
                       script.is_running: pump_system
+                  - not: 
+                      script.is_running: repressurize
                   - lambda: |-
                       return id(mode).state == $MODE_RUNNING;
                   - mqtt.connected:
