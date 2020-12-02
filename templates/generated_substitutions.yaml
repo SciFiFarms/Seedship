@@ -9,3 +9,4 @@ mqtt_username: !gen_mqtt_username
 mqtt_password: !gen_mqtt_password
 <<: !include seedship_modes.yaml
 delay: !gen_delay 15
+long_delay: !gen_delay 900
