@@ -9,20 +9,22 @@ script:
       - logger.log: "Starting Furtigation"
       - lambda: |-
           id(mixers).dose();
-      - delay: 2min
+      - delay: 4 min
+      - lambda: |-
+          id(h2o2).dose();
+      - wait_until:
+          switch.is_off: h2o2
+      - delay: 4 min
       - lambda: |-
           id(part_a).dose();
       - wait_until:
           switch.is_off: part_a
-      - delay: 5min
+      - delay: 4 min
       - lambda: |-
           id(part_b).dose();
       - wait_until:
           switch.is_off: part_b
-      - delay: 2min
-      - lambda: |-
-          id(ph_up).dose();
-      - delay: 120s
+      - delay: 4 min
 
 switch:
   # Relay 1
@@ -54,11 +56,11 @@ switch:
 
   # Relay 4
   - platform: dosage
-    name: "${system_friendly} PH Down"
-    command_topic: seedship/${system}/ph_down
+    name: "${system_friendly} H2O2"
+    command_topic: seedship/${system}/h2o2
     pin: GPIO12
-    id: ph_down
-    dosage: 10s
+    id: h2o2
+    dosage: 20s
     restore_mode: ALWAYS_OFF
 
   # Relay USB
@@ -113,7 +115,7 @@ binary_sensor:
                     id(part_a).cancel_dose();
                     id(part_b).cancel_dose();
                     id(ph_up).cancel_dose();
-                    id(ph_down).cancel_dose();
+                    id(h2o2).cancel_dose();
                     id(mixers).cancel_dose();
       - timing:
           - ON for at most 1s
@@ -144,7 +146,7 @@ sensor:
             - logger.log: Fertigating
             - script.execute: fertigate_strawberries
 
-  #- !include templates/sensor/seedship_mode.yaml
+  - !include templates/sensor/seedship_mode.yaml
   - platform: wifi_signal
     name: "${system_friendly} ${subsystem_friendly} WiFi Signal"
     update_interval: 60s
