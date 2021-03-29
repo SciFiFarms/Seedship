@@ -146,7 +146,7 @@ sensor:
             - logger.log: Fertigating
             - script.execute: fertigate_strawberries
 
-  - !include templates/sensor/seedship_mode.yaml
+  - !include templates/sensor/seedship_mode_internal.yaml
   - platform: wifi_signal
     name: "${system_friendly} ${subsystem_friendly} WiFi Signal"
     update_interval: 60s
