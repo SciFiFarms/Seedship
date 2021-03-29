@@ -130,7 +130,7 @@ script:
           then:
             - logger.log: "_clear_system_pump timed out."
             - mqtt.publish:
-                topic: seedships/${system}/warnings
+                topic: seedship/${system}/warnings
                 payload: "${system}: clear_pump_system timed out and had to retry."
             - script.stop: _clear_pump_system
       - logger.log: "Finished _clear_pump_system_timeout"
@@ -339,7 +339,7 @@ sensor:
             - logger.log: Running pump_system
             - script.execute: pump_system
 
-  - !include templates/sensor/seedship_mode.yaml
+  - !include templates/sensor/seedship_mode_internal.yaml
   - platform: wifi_signal
     name: "${system_friendly} ${subsystem_friendly} WiFi Signal"
     update_interval: 60s
@@ -349,6 +349,11 @@ sensor:
 text_sensor:
   - platform: version
     name: "${system_friendly} ${subsystem_friendly} ESPHome Version"
+
+  - platform: mqtt_subscribe
+    name: "${system_friendly} Warnings"
+    #id: warnings
+    topic: seedship/${system}/warnings
 
   - platform: mqtt_subscribe
     name: "${system_friendly} Drainage Bus"
