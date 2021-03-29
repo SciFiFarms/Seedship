@@ -1,4 +1,4 @@
-# This is an unbranded-water-supply-mixer.yaml template. 
+# This is an unbranded-water-supply-mixer.yaml template.
 substitutions:
   #debug: !debug
   <<: !include templates/generated_substitutions.yaml
@@ -17,9 +17,9 @@ script:
       - script.wait: repressurize
 
   - id: drain
-    # TODO: This works fine as long as there aren't any conflicts. Once those start happening an actual queue will be needed. 
-    # I think the tricky part is going to be getting and storing drainage_bus_request state to give each run a different value. 
-    # Basically, how to queue with state. 
+    # TODO: This works fine as long as there aren't any conflicts. Once those start happening an actual queue will be needed.
+    # I think the tricky part is going to be getting and storing drainage_bus_request state to give each run a different value.
+    # Basically, how to queue with state.
     mode: single
     then:
       - logger.log: "Changing drainage bus ownership."
@@ -27,14 +27,21 @@ script:
           topic: seedship/drainage/owner
           payload: !lambda |-
               return id(drainage_bus_request)->state;
+      - if:
+          condition:
+              script.is_running: _drainage_timeout
+          then:
+              script.stop: _drainage_timeout
+      - script.execute: _drainage_timeout
       - switch.turn_on: drainage_pump
       # Have to give the message time to work through the network and get back to this device.q`
-      - delay: 10s 
+      - delay: 10s
       - wait_until:
           condition:
             text_sensor.state:
               id: drainage_bus
               state: "idle"
+      - script.stop: _drainage_timeout
       - switch.turn_off: drainage_pump
 
   - id: repressurize
@@ -128,13 +135,24 @@ script:
             - script.stop: _clear_pump_system
       - logger.log: "Finished _clear_pump_system_timeout"
 
+  - id: _drainage_timeout
+    then:
+        - delay: 14 min
+        - mqtt.publish:
+            topic: seedship/${system}/warnings
+            payload: "${system}: Drainage timed out returning to idle. Resetting owner to idle."
+        - script.stop: drain
+        - mqtt.publish:
+            topic: seedship/drainage/owner
+            payload: "idle"
+
 switch:
   # Relay 1
   # Peristaltic Pump
   - platform: dosage
     name: "${system_friendly} Water"
     command_topic: seedship/${system}/water
-    pin: 
+    pin:
       number: GPIO15
       mode: OUTPUT
     id: water
@@ -142,11 +160,11 @@ switch:
     dosage: 30 min
 
   # Relay 2
-  # Solenoid. 
+  # Solenoid.
   - platform: dosage
     name: "${system_friendly} Discharge"
     command_topic: seedship/${system}/${subsystem}_discharge
-    pin: 
+    pin:
       number: GPIO5
       mode: OUTPUT
     id: discharge
@@ -154,11 +172,11 @@ switch:
     dosage: 15s
 
   # Relay 3
-  # Solenoid. 
+  # Solenoid.
   - platform: dosage
     name: "${system_friendly} Water Line"
     command_topic: seedship/${system}/water_line
-    pin: 
+    pin:
       number: GPIO14
       mode: OUTPUT
     id: water_line
@@ -191,11 +209,11 @@ binary_sensor:
       inverted: True
     name: "${system_friendly} ${subsystem_friendly} Button"
     on_multi_click:
-      - timing: 
+      - timing:
           - ON for at least 3s
         then:
           - if:
-              condition: 
+              condition:
                 - lambda: |-
                     return id(mode).state == $MODE_MANUAL_OVERRIDE;
               then:
@@ -217,7 +235,7 @@ binary_sensor:
                 - lambda: |-
                     return id(mode).state == $MODE_RUNNING;
               then:
-                - if: 
+                - if:
                     condition:
                       - script.is_running: pump_system
                     then:
@@ -247,7 +265,7 @@ sensor:
     id: bus_psi
     topic: seedship/${system}/bus_psi
     on_value:
-      - if: 
+      - if:
           condition:
               and:
                   - sensor.in_range:
@@ -260,7 +278,7 @@ sensor:
                     - script.is_running: pump_system
                   - not:
                     - script.is_running: repressurize
-                  - not: 
+                  - not:
                     - script.is_running: clear_pump_system
                   - lambda: |-
                       return id(mode).state == $MODE_RUNNING;
@@ -271,7 +289,7 @@ sensor:
             - script.wait: repressurize
             - logger.log: "water_line closed. "
 
-            # If it's not to pressure by now, a new batch is needed. 
+            # If it's not to pressure by now, a new batch is needed.
             - if:
                 condition:
                   sensor.in_range:
@@ -279,19 +297,19 @@ sensor:
                     id: bus_psi
                 then:
                   - mqtt.publish:
-                      # TODO: This should be a sensor reserving the mixing system. 
+                      # TODO: This should be a sensor reserving the mixing system.
                       topic: seedship/${system}/strawberries
                       payload: 1
 
-      - if: 
+      - if:
           condition:
               and:
                   - sensor.in_range:
                       id: bus_psi
                       below: 64
-                  - not: 
+                  - not:
                       script.is_running: pump_system
-                  - not: 
+                  - not:
                       script.is_running: repressurize
                   - lambda: |-
                       return id(mode).state == $MODE_RUNNING;
@@ -330,7 +348,7 @@ sensor:
 
 text_sensor:
   - platform: version
-    name: "${system_friendly} ${subsystem_friendly} ESPHome Version"  
+    name: "${system_friendly} ${subsystem_friendly} ESPHome Version"
 
   - platform: mqtt_subscribe
     name: "${system_friendly} Drainage Bus"
@@ -341,14 +359,18 @@ text_sensor:
     name: "${system_friendly} Drainage Bus Requests"
     id: drainage_bus_request
     topic: seedship/drainage/request_access
-    on_value: 
+    on_value:
       - script.execute: drain
 
 status_led:
   pin:
     number: GPIO2
 
-esphome: !include templates/esphome/esp01_1m.yaml
+esphome:
+  <<: !include templates/esphome/esp01_1m.yaml
+  on_boot:
+    then:
+      - script.execute: _drainage_timeout
 wifi: !include secrets/wifi.yaml
 mqtt: !include templates/mqtt/mqtt.yaml
 logger:
