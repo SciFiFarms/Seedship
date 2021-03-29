@@ -6,7 +6,7 @@ substitutions:
 i2c:
   - id: tsl2561_bus
     sda: GPIO23
-    scl: GPIO22 
+    scl: GPIO22
 
 # This one is for CO2
   - id: scd30_bus
@@ -76,7 +76,7 @@ sensor:
 
   - platform: dht
     model: DHT22
-    pin: 
+    pin:
       number: GPIO18
     temperature:
       name: ${system_friendly} Shoot Zone Temperature
@@ -92,14 +92,14 @@ sensor:
       force_update: true
     update_interval: 1 min
   - platform: template
-    name: $system_friendly Shoot Zone VPD 
+    name: $system_friendly Shoot Zone VPD
     accuracy_decimals: 2
     unit_of_measurement: "kPa"
     id: shoot_zone_vpd
     update_interval: 1 min
     expire_after: 5 min
     force_update: true
-    lambda: |- 
+    lambda: |-
         return (1 - id(shoot_zone_humidity).state/100)*610.7*pow(10.0,(7.5 * id(shoot_zone_temp).state) / (237.3 + id(shoot_zone_temp).state) )/1000;
 
   - platform: dht
@@ -148,7 +148,7 @@ sensor:
       accuracy_decimals: 1
     address: 0x61
     update_interval: 1 min
-    
+
   - !include templates/sensor/seedship_mode.yaml
   - platform: wifi_signal
     name: "${system_friendly} ${subsystem_friendly} WiFi Signal"
@@ -156,8 +156,8 @@ sensor:
   - platform: uptime
     name: "${system_friendly} ${subsystem_friendly} Uptime"
 
-esphome: 
-  name: $device_name 
+esphome:
+  name: $device_name
   platform: ESP32
   board: esp32doit-devkit-v1
   # If it builds in the /config folder like is default, then there arise

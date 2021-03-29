@@ -11,7 +11,7 @@ switch:
     pin: GPIO15
     id: relay1
 
-  # Relay 2 
+  # Relay 2
   - platform: gpio
     name: "${system_friendly} Dehumidification"
     command_topic: seedship/${system}/${subsystem}_dehumidification
@@ -55,7 +55,7 @@ switch:
       - switch.turn_on: heater_switch
       - delay: 5min
       - switch.turn_off: heater_switch
-      # Give the heater a chance to cool. 
+      # Give the heater a chance to cool.
       - delay: 5min
 
 binary_sensor:
@@ -89,7 +89,7 @@ binary_sensor:
       then:
         - logger.log: "Single-Clicked"
         - if:
-            condition: 
+            condition:
               - lambda: |-
                   return id(mode).state != $MODE_MANUAL_OVERRIDE;
             then:
@@ -124,7 +124,7 @@ sensor:
                   - switch.is_off: heater
                   - mqtt.connected:
                   # Detect NaN
-                  # Detect Unavalible. 
+                  # Detect Unavalible.
                   #- ${subsystem}_temperature_time < 1 minute. Or maybe short MQTT death and just detect connection to MQTT.
             then:
               - switch.turn_on: heater
@@ -138,11 +138,11 @@ sensor:
                       above: 21.0
                   - switch.is_on: heater
                   # Detect NaN
-                  # Detect Unavalible. 
+                  # Detect Unavalible.
                   #- ${subsystem}_temperature_time < 1 minute. Or maybe short MQTT death and just detect connection to MQTT.
             then:
               - switch.turn_off: heater
-    
+
   - platform: mqtt_subscribe
     name: "${system_friendly} Humidity"
     id: ${subsystem}_humidity
@@ -178,7 +178,7 @@ sensor:
 
 text_sensor:
   - platform: version
-    name: "${system_friendly} ESPHome Version"  
+    name: "${system_friendly} ESPHome Version"
 
 time:
   - platform: sntp
@@ -188,7 +188,7 @@ time:
       - seconds: 0
         minutes: 0,5,10,15,20,25,30,35,40,45,50,55
         hours: 21,22,23,0,1,2,3,4,5,6,7,8
-        then: 
+        then:
           if:
             condition:
               and:
@@ -197,7 +197,7 @@ time:
             then:
               - delay: $delay
               - switch.turn_on: lights
-              
+
   - platform: sntp
     # Will turn lights off every 5 minutes from 10:00-21:55.
     timezone: America/Denver

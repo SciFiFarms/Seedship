@@ -1,4 +1,4 @@
-# This is an unbranded-water-supply-mixer.yaml template. 
+# This is an unbranded-water-supply-mixer.yaml template.
 substitutions:
   #debug: !debug
   <<: !include templates/generated_substitutions.yaml
@@ -67,7 +67,7 @@ switch:
   - platform: dosage
     name: "${system_friendly} Mixers"
     command_topic: seedship/${system}/mixers
-    pin: 
+    pin:
       number: GPIO4
       mode: OUTPUT
     id: mixers
@@ -155,7 +155,7 @@ sensor:
 
 text_sensor:
   - platform: version
-    name: "${system_friendly} ${subsystem_friendly} ESPHome Version"  
+    name: "${system_friendly} ${subsystem_friendly} ESPHome Version"
 
 status_led:
   pin:

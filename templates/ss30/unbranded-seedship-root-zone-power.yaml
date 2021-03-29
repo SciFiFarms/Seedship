@@ -1,4 +1,4 @@
-# This is an unbranded-seedship-root-zone-power.yaml template. 
+# This is an unbranded-seedship-root-zone-power.yaml template.
 substitutions:
   #debug: !debug
   <<: !include templates/generated_substitutions.yaml
@@ -89,7 +89,7 @@ sensor:
     name: "${system_friendly} ${subsystem_friendly} Uptime"
 
 time:
-  #The below code ***Should*** turn on the nozzles every 10 minutes for 10 seconds. https://esphome.io/components/time.html?highlight=time#on-time for code that I used. 
+  #The below code ***Should*** turn on the nozzles every 10 minutes for 10 seconds. https://esphome.io/components/time.html?highlight=time#on-time for code that I used.
   - platform: sntp
     #id: time
     # TODO: This should be read from an env var.
@@ -98,7 +98,7 @@ time:
       # Mist Roots
       - seconds: 0
         minutes: /5
-        then: 
+        then:
           - delay: $delay
           - lambda: |-
               id(nozzles).dose();
@@ -107,7 +107,7 @@ time:
       - seconds: 0
         minutes: 2
         hours: /3
-        then: 
+        then:
           - delay: $long_delay
           - script.execute: drain
 
@@ -116,7 +116,7 @@ text_sensor:
     #name: "Data from topic"
     id: drainage_bus
     topic: seedship/drainage/owner
-    on_value: 
+    on_value:
       - if:
           condition:
             text_sensor.state:
@@ -125,7 +125,7 @@ text_sensor:
           then:
             - lambda: !lambda
                 id(drainage).dose();
-            - wait_until: 
+            - wait_until:
                 switch.is_off: drainage
             #- delay: !lambda
             #    return id(drainage).get_dosage();
@@ -134,7 +134,7 @@ text_sensor:
                 payload: "idle"
 
   - platform: version
-    name: "${system_friendly} ${subsystem_friendly} ESPHome Version"  
+    name: "${system_friendly} ${subsystem_friendly} ESPHome Version"
 
 status_led:
   pin:
