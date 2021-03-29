@@ -59,7 +59,7 @@ script:
               below: 65
           # If it's a fresh batch, it'll take extra long to pressurize.
           then:
-            - lambda: 
+            - lambda:
                 # Increase the dose X3.
                 id(water_line).dose(3);
           else:
@@ -80,50 +80,59 @@ script:
       - logger.log: Finished initial wait for clear_pump_system
       - if:
           condition:
-            # TODO: Maybe this should be pump_psi < pump system_psi?
-            sensor.in_range:
-              id: pump_psi
-              below: 65
+            lambda:
+                return id(bus_psi)->state - 5 >= id(pump_psi)->state || id(pump_psi)->state >= 95;
           then:
-            #- script.stop: _clear_pump_system_timeout
-            - logger.log: try 2
+            - mqtt.publish:
+                topic: seedship/${system}/warnings
+                payload: "${system}: clear_pump_system timed out and had to retry."
             - script.execute: _clear_pump_system
-      - wait_until:
-          not:
-            script.is_running: _clear_pump_system
+            - wait_until:
+                not:
+                  script.is_running: _clear_pump_system
+            - if:
+                condition:
+                  lambda:
+                      return id(bus_psi)->state - 5 >= id(pump_psi)->state || id(pump_psi)->state >= 95;
+                then:
+                  - mqtt.publish:
+                      topic: seedship/${system}/warnings
+                      payload: "${system}: TWICE clear_pump_system has timed out and had to retry."
+                  - script.execute: _clear_pump_system
+                  - wait_until:
+                      not:
+                        script.is_running: _clear_pump_system
+                  - if:
+                      condition:
+                        lambda:
+                            return id(bus_psi)->state - 5 >= id(pump_psi)->state || id(pump_psi)->state >= 95;
+                      then:
+                        - mqtt.publish:
+                            topic: seedship/${system}/warnings
+                            payload: "${system}: THRICE clear_pump_system has timed out and had to retry."
       - logger.log: Finished final wait for clear_pump_system
 
-  # I prepended "_" because it should be thought of as an internal call. 
-  # Error handling and timeout detection is handled higher up the stack.  
+  # I prepended "_" because it should be thought of as an internal call.
+  # Error handling and timeout detection is handled higher up the stack.
   - id: _clear_pump_system
     mode: single
     then:
-      - if:
-          condition:
-            sensor.in_range:
-              id: pump_psi
-              below: 90
-          # If it's a fresh batch, it'll take extra long to pressurize.
-          then:
-            # Increase the dose X3.
-            - lambda: |-
-                id(discharge).dose(3);
-          else:
-            - lambda: |-
-                id(discharge).dose();
-      - delay: !lambda |-
-          return id(discharge).get_dosage() - 1000;
+      - lambda: |-
+          id(discharge).dose();
+      - wait_until:
+          switch.is_off: discharge
       - script.execute: _clear_pump_system_timeout
       - wait_until:
-          lambda: 
-              return id(bus_psi)->state < id(pump_psi)->state;
+          lambda:
+              return id(bus_psi)->state - 5 < id(pump_psi)->state;
+      - script.stop: _clear_pump_system_timeout
 
-  # Stop _clear_pump when the timeout expires. 
+  # Stop _clear_pump when the timeout expires.
   - id: _clear_pump_system_timeout
     mode: single
-    then: 
-      - delay: 1 min
-      - logger.log: "_clear_pump_system_timeout timout done"
+    then:
+      - delay: 2 min
+      - logger.log: "_clear_pump_system_timeout timeout done"
       - if:
           condition:
             script.is_running: _clear_pump_system
