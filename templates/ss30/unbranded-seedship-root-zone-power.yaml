@@ -1,6 +1,7 @@
 # This is an unbranded-seedship-root-zone-power.yaml template.
 substitutions:
   #debug: !debug
+  water_supply: water_supply_01
   <<: !include templates/generated_substitutions.yaml
 
 switch:
@@ -100,8 +101,29 @@ time:
         minutes: /5
         then:
           - delay: $delay
+          - mqtt.publish:
+              topic: seedship/${water_supply}/bus_request_access
+              payload: ${system}_${subsystem}
+          - wait_until:
+              condition:
+                text_sensor.state:
+                  id: bus
+                  state: ${system}_${subsystem}
           - lambda: |-
+              id(pre_psi) = id(bus_psi).state;
               id(nozzles).dose();
+          - delay: 5s
+          - lambda: |-
+              float post_psi = id(bus_psi).state;
+
+              if (post_psi - id(pre_psi) < id(current_clogged_nozzle_value).state - (id(current_clogged_nozzle_value).state * 0.2))
+              {
+                id(warnings).publish_state("Warning! Nozzles for ${system} appear to be clogged.");
+              }
+          - delay: 10s
+          - mqtt.publish:
+              topic: seedship/${water_supply}/bus_owner
+              payload: "idle"
 
       # Drain Root zone
       - seconds: 0
@@ -112,6 +134,11 @@ time:
           - script.execute: drain
 
 text_sensor:
+  - platform: mqtt_subscribe
+    name: "${system_friendly} Bus"
+    id: bus
+    topic: seedship/${water_supply}/bus_owner
+
   - platform: mqtt_subscribe
     #name: "Data from topic"
     id: drainage_bus
