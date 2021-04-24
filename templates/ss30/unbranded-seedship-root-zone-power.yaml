@@ -1,7 +1,6 @@
 # This is an unbranded-seedship-root-zone-power.yaml template.
 substitutions:
   #debug: !debug
-  water_supply: water_supply_01
   <<: !include templates/generated_substitutions.yaml
 
 switch:
@@ -89,8 +88,41 @@ sensor:
   - platform: uptime
     name: "${system_friendly} ${subsystem_friendly} Uptime"
 
+  - id: spray
+    then:
+      - delay: $delay
+      - mqtt.publish:
+          topic: seedship/${water_supply}/bus_request_access
+          payload: ${system}_${subsystem}
+      - wait_until:
+          condition:
+            text_sensor.state:
+              id: bus
+              state: ${system}_${subsystem}
+      - lambda: |-
+          id(pre_psi) = id(bus_psi).state;
+          id(nozzles).dose();
+      - delay: 5s
+      - lambda: |-
+          float post_psi = id(bus_psi).state;
+
+          if (post_psi - id(pre_psi) < id(current_clogged_nozzle_value).state - (id(current_clogged_nozzle_value).state * 0.2))
+          {
+            id(mqtt_client).publish("seedship/${water_supply}/warnings", "Warning! Nozzles for ${system} appear to be clogged.");
+          }
+      - delay: 10s
+      - mqtt.publish:
+          topic: seedship/${water_supply}/bus_owner
+          payload: "idle"
+
+sensor:
+  - !include templates/sensor/seedship_mode_internal.yaml
+  - platform: wifi_signal
+    name: "${system_friendly} ${subsystem_friendly} WiFi Signal"
+    update_interval: 60s
+  - platform: uptime
+    name: "${system_friendly} ${subsystem_friendly} Uptime"
 time:
-  #The below code ***Should*** turn on the nozzles every 10 minutes for 10 seconds. https://esphome.io/components/time.html?highlight=time#on-time for code that I used.
   - platform: sntp
     #id: time
     # TODO: This should be read from an env var.
@@ -100,30 +132,23 @@ time:
       - seconds: 0
         minutes: /5
         then:
-          - delay: $delay
-          - mqtt.publish:
-              topic: seedship/${water_supply}/bus_request_access
-              payload: ${system}_${subsystem}
-          - wait_until:
+          - if:
               condition:
-                text_sensor.state:
-                  id: bus
-                  state: ${system}_${subsystem}
-          - lambda: |-
-              id(pre_psi) = id(bus_psi).state;
-              id(nozzles).dose();
-          - delay: 5s
-          - lambda: |-
-              float post_psi = id(bus_psi).state;
+                - lambda: |-
+                    return id(mode).state == $MODE_RUNNING;
+              then:
+                - script.execute: spray
 
-              if (post_psi - id(pre_psi) < id(current_clogged_nozzle_value).state - (id(current_clogged_nozzle_value).state * 0.2))
-              {
-                id(warnings).publish_state("Warning! Nozzles for ${system} appear to be clogged.");
-              }
-          - delay: 10s
-          - mqtt.publish:
-              topic: seedship/${water_supply}/bus_owner
-              payload: "idle"
+      # Mist Roots - Emergency mode.
+      - seconds: 0
+        minutes: /30
+        then:
+          - if:
+              condition:
+                - lambda: |-
+                    return id(mode).state == $MODE_WATER_SUPPLY_ERROR;
+              then:
+                - script.execute: spray
 
       # Drain Root zone
       - seconds: 0
