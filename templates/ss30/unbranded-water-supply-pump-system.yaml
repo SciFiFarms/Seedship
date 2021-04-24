@@ -104,45 +104,80 @@ script:
             - script.stop: _clear_pump_system
       - logger.log: "Finished _clear_pump_system_timeout"
 
-  - id: drain
-    # TODO: This works fine as long as there aren't any conflicts. Once those start happening an actual queue will be needed.
-    # I think the tricky part is going to be getting and storing drainage_bus_request state to give each run a different value.
-    # Basically, how to queue with state.
-    mode: single
+
+  - id: receive_drainage_bus_request
+    mode: parallel
+    then:
+      - lambda: |-
+          json::global_json_buffer.clear();
+          std::string array_string = id(drainage_bus_requests).state;
+          JsonArray& array = json::global_json_buffer.parseArray(array_string);
+
+          array.add(id(drainage_bus_request).state);
+
+          std::string new_array_string;
+          array.printTo(new_array_string);
+          //ESP_LOGW(TAG, "Array: %s (%d)\n\n", new_array_string.c_str(), array.size());
+
+          id(drainage_bus_requests).publish_state(new_array_string.c_str());
+      - script.execute: reserve_drainage_bus
+
+  - id: reserve_drainage_bus
+    mode: queued
     then:
       - logger.log: "Changing drainage bus ownership."
-      - mqtt.publish:
-          topic: seedship/drainage/owner
-          payload: !lambda |-
-              return id(drainage_bus_request)->state;
-      - if:
-          condition:
-              script.is_running: _drainage_timeout
-          then:
-              script.stop: _drainage_timeout
-      - script.execute: _drainage_timeout
+      - script.execute: _drainage_bus_timeout
       - switch.turn_on: drainage_pump
-      # Have to give the message time to work through the network and get back to this device.q`
-      - delay: 10s
+      - mqtt.publish:
+          topic: seedship/${system}/drainage_bus_owner
+          # TODO: Make this persist state by setting the value of bus_requests at boot via another sensor subscribed to bus_requests... Maybe persist message?
+          payload: !lambda >-
+              json::global_json_buffer.clear();
+              std::string array_string = id(drainage_bus_requests).state;
+              JsonArray& array = json::global_json_buffer.parseArray(array_string);
+
+              std::string request = array[0];
+              array.remove(0);
+
+              std::string new_array_string;
+              array.printTo(new_array_string);
+              //ESP_LOGW(TAG, "Array: %s (%d)\n\n", new_array_string.c_str(), array.size());
+
+              id(drainage_bus_requests).publish_state(new_array_string.c_str());
+              return request;
+      # Need to allow for the state to actually change.
+      - delay: 1 s
       - wait_until:
           condition:
             text_sensor.state:
               id: drainage_bus
               state: "idle"
-      - script.stop: _drainage_timeout
+      - logger.log: "Finished waiting for idle"
+
+      # Clean up the timeout script if it's still running.
+      - if:
+          condition:
+              script.is_running: _drainage_bus_timeout
+          then:
+              script.stop: _drainage_bus_timeout
       - switch.turn_off: drainage_pump
 
-  - id: _drainage_timeout
+  - id: _drainage_bus_timeout
     then:
         - delay: 14 min
-        # TODO: If drainage/owner is already idle, don't do anything.
-        - mqtt.publish:
-            topic: seedship/${system}/warnings
-            payload: "${system}: Drainage timed out returning to idle. Resetting owner to idle."
-        - script.stop: drain
-        - mqtt.publish:
-            topic: seedship/drainage/owner
-            payload: "idle"
+        - if:
+            condition:
+                not:
+                  text_sensor.state:
+                    id: drainage_bus
+                    state: "idle"
+            then:
+                - mqtt.publish:
+                    topic: seedship/${system}/warnings
+                    payload: "${system}: Drainage bus timed out; Resetting owner to idle."
+                - mqtt.publish:
+                    topic: seedship/${system}/drainage_bus_owner
+                    payload: "idle"
 
 
   - id: receive_bus_request
@@ -203,7 +238,6 @@ script:
   - id: _bus_timeout
     then:
         - delay:  1 min
-        # TODO: Duplicate this logic for drainage timeout.
         - if:
             condition:
                 not:
@@ -430,14 +464,18 @@ text_sensor:
   - platform: mqtt_subscribe
     name: "${system_friendly} Drainage Bus"
     id: drainage_bus
-    topic: seedship/drainage/owner
+    topic: seedship/${water_supply}/drainage_bus_owner
 
   - platform: mqtt_subscribe
     name: "${system_friendly} Drainage Bus Requests"
     id: drainage_bus_request
-    topic: seedship/drainage/request_access
+    topic: seedship/${system}/drainage_bus_request_access
     on_value:
-      - script.execute: drain
+      - script.execute: receive_drainage_bus_request
+
+  - platform: template
+    name: ${system_friendly} Drainage Bus Requests
+    id: drainage_bus_requests
 
   - platform: mqtt_subscribe
     name: "${system_friendly} Bus"
@@ -463,7 +501,8 @@ esphome:
   <<: !include templates/esphome/esp01_1m.yaml
   on_boot:
     then:
-      - script.execute: _drainage_timeout
+      - script.execute: _drainage_bus_timeout
+      - script.execute: _bus_timeout
 
 wifi: !include secrets/wifi.yaml
 mqtt: !include templates/mqtt/mqtt.yaml

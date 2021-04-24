@@ -74,7 +74,7 @@ script:
   - id: drain
     then:
       - mqtt.publish:
-          topic: seedship/drainage/request_access
+          topic: seedship/${water_supply}/drainage_bus_request_access
           payload: ${system}_${subsystem}
       - delay: 30 s
       - wait_until:
@@ -167,7 +167,7 @@ text_sensor:
   - platform: mqtt_subscribe
     #name: "Data from topic"
     id: drainage_bus
-    topic: seedship/drainage/owner
+    topic: seedship/${water_supply}/drainage_bus_owner
     on_value:
       - if:
           condition:
@@ -182,7 +182,7 @@ text_sensor:
             #- delay: !lambda
             #    return id(drainage).get_dosage();
             - mqtt.publish:
-                topic: seedship/drainage/owner
+                topic: seedship/${water_supply}/drainage_bus_owner
                 payload: "idle"
 
   - platform: version
