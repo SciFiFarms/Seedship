@@ -1,0 +1,8 @@
+---
+platform: mqtt_subscribe
+name: "${system_friendly} Mode"
+topic: seedship/${water_supply}/mode
+id: mode
+accuracy_decimals: 0
+initial_value: $MODE_RUNNING
+internal: true

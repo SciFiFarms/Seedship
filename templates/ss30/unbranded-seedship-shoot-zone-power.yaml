@@ -1,52 +1,48 @@
-# This is a hal-humidity-temperature.yaml template.
+# This is an unbranded-seedship-shoot-zone-power.yaml template.
 substitutions:
-  device_name: !gen_device_name
-  device_id: !gen_device_id
-  mqtt_username: !gen_mqtt_username
-  mqtt_password: !gen_mqtt_password
-
-esphome: !include templates/esphome/esp01_1m.yaml
-wifi: !include secrets/wifi.yaml
-mqtt: !include templates/mqtt/mqtt.yaml
+  #debug: !debug
+  <<: !include templates/generated_substitutions.yaml
 
 switch:
+  # Relay 1
   - platform: gpio
-    name: "Seedship ${device_id} Shoot Zone Cooling"
-    command_topic: seedship/$device_id/shoot_zone/cooling
+    name: "${system_friendly} Cooling"
+    command_topic: seedship/${system}/${subsystem}_cooling
     pin: GPIO15
-    #inverted: yes
-    # Relay 1
     id: relay1
+
+  # Relay 2
   - platform: gpio
-    name: "Seedship ${device_id} Shoot Zone Dehumidification"
-    command_topic: seedship/$device_id/shoot_zone/dehumidification
+    name: "${system_friendly} Dehumidification"
+    command_topic: seedship/${system}/${subsystem}_dehumidification
     pin: GPIO5
-    #inverted: yes
-    # Relay 2 
     id: dehumidifier
+
+  # Relay 3
   - platform: gpio
-    name: "Seedship ${device_id} Shoot Zone Heating"
-    command_topic: seedship/$device_id/shoot_zone/heater
+    name: "${system_friendly} Heating"
+    command_topic: seedship/${system}/${subsystem}_heating
     pin: GPIO14
-    #inverted: yes
-    # Relay 3
     id: heater_switch
-  - platform: gpio
-    # Relay 4
-    name: "Seedship ${device_id} Shoot Zone Lighting"
-    command_topic: seedship/$device_id/shoot_zone/light
+
+  # Relay 4
+  - platform: dosage
+    name: "${system_friendly} Lighting"
+    command_topic: seedship/${system}/${subsystem}_lighting
     pin: GPIO12
-    #inverted: yes
     id: lights
+    dosage: 1h
+
+  # Relay USB
   - platform: gpio
-    name: "Seedship ${device_id} Shoot Zone USB Power"
-    command_topic: seedship/$device_id/shoot_zone/usb_power
+    name: "${system_friendly} USB Power"
+    command_topic: seedship/${system}/${subsystem}_usb_power
     pin: GPIO4
     restore_mode: ALWAYS_ON
     id: relay5
 
   - platform: template
-    name: "Seedship ${device_id} Heater"
+    name: "${system_friendly} Heater"
     id: heater
     #icon: "mdi:spray"
     lambda: |-
@@ -59,7 +55,7 @@ switch:
       - switch.turn_on: heater_switch
       - delay: 5min
       - switch.turn_off: heater_switch
-      # Give the heater a chance to cool. 
+      # Give the heater a chance to cool.
       - delay: 5min
 
 binary_sensor:
@@ -67,42 +63,69 @@ binary_sensor:
     pin:
       number: GPIO13
       mode: INPUT_PULLUP
-      inverted: False
-    name: "Seedship ${device_id} Shoot Zone Power Button"
-    on_press:
-      - switch.toggle: relay1
-      - switch.toggle: dehumidifier
-      - switch.toggle: heater_switch
-      - switch.toggle: lights
+      inverted: True
+    name: "${system_friendly} Button"
+    on_multi_click:
+    - timing:
+        - ON for at most 1s
+        - OFF for at most 0.3s
+        - ON for at most 1s
+        - OFF for at least 0.2s
+      then:
+        - logger.log: "Double-Clicked"
+        - switch.toggle: lights
+        - lambda: |-
+            if(id(mode).state != $MODE_MANUAL_OVERRIDE)
+            {
+              id(mode).publish_state($MODE_MANUAL_OVERRIDE);
+            }
+            else
+            {
+              id(mode).publish_state($MODE_RUNNING);
+            }
+    - timing:
+        - ON for at most 1s
+        - OFF for at least 0.5s
+      then:
+        - logger.log: "Single-Clicked"
+        - if:
+            condition:
+              - lambda: |-
+                  return id(mode).state != $MODE_MANUAL_OVERRIDE;
+            then:
+              - lambda: |-
+                  id(mode).publish_state($MODE_MANUAL_OVERRIDE);
+                  App.scheduler.set_timeout(id(mode), "manual_mode_timeout", id(lights)->get_dosage(), [id(mode)](){
+                    if(id(mode).state == $MODE_MANUAL_OVERRIDE)
+                      id(mode).publish_state($MODE_RUNNING);
+                    });
+                  id(lights).dose();
+            else:
+              - lambda: |-
+                  id(lights).toggle();
+                  id(mode).publish_state($MODE_RUNNING);
 
   - platform: status
-    name: "Seedship ${device_id} Shoot Zone Power Status"
+    name: "${system_friendly} Status"
 
 sensor:
-  - platform: wifi_signal
-    name: "Seedship ${device_id} Shoot Zone Power WiFi Signal"
-    update_interval: 60s
-
-  - platform: uptime
-    name: "Seedship ${device_id} Shoot Zone Power Uptime"
-
   - platform: mqtt_subscribe
-    name: "Seedship Shoot Zone Temperature"
-    id: shoot_zone_temperature
-    topic: seedship/$device_id/shoot_zone/temperature
+    name: "${system_friendly} Temperature"
+    id: ${subsystem}_temperature
+    topic: seedship/${system}/${subsystem}_temperature
     on_value:
       then:
         - if:
             condition:
               and:
                   - sensor.in_range:
-                      id: shoot_zone_temperature
+                      id: ${subsystem}_temperature
                       below: 19.0
                   - switch.is_off: heater
                   - mqtt.connected:
                   # Detect NaN
-                  # Detect Unavalible. 
-                  #- shoot_zone_temperature_time < 1 minute. Or maybe short MQTT death and just detect connection to MQTT.
+                  # Detect Unavalible.
+                  #- ${subsystem}_temperature_time < 1 minute. Or maybe short MQTT death and just detect connection to MQTT.
             then:
               - switch.turn_on: heater
               #- delay: 5min
@@ -111,26 +134,26 @@ sensor:
             condition:
               and:
                   - sensor.in_range:
-                      id: shoot_zone_temperature
+                      id: ${subsystem}_temperature
                       above: 21.0
                   - switch.is_on: heater
                   # Detect NaN
-                  # Detect Unavalible. 
-                  #- shoot_zone_temperature_time < 1 minute. Or maybe short MQTT death and just detect connection to MQTT.
+                  # Detect Unavalible.
+                  #- ${subsystem}_temperature_time < 1 minute. Or maybe short MQTT death and just detect connection to MQTT.
             then:
               - switch.turn_off: heater
-    
+
   - platform: mqtt_subscribe
-    name: "Seedship Shoot Zone Humidity"
-    id: shoot_zone_humidity
-    topic: seedship/$device_id/shoot_zone/humidity
+    name: "${system_friendly} Humidity"
+    id: ${subsystem}_humidity
+    topic: seedship/${system}/${subsystem}_humidity
     on_value:
         then:
           - if:
               condition:
                 and:
                     - sensor.in_range:
-                        id: shoot_zone_humidity
+                        id: ${subsystem}_humidity
                         above: 75
                     - switch.is_off: dehumidifier
                     - mqtt.connected:
@@ -140,32 +163,65 @@ sensor:
               condition:
                 and:
                     - sensor.in_range:
-                        id: shoot_zone_humidity
+                        id: ${subsystem}_humidity
                         below: 60
                     - switch.is_on: dehumidifier
               then:
                 - switch.turn_off: dehumidifier
 
+  - !include templates/sensor/seedship_mode_internal.yaml
+  - platform: wifi_signal
+    name: "${system_friendly} ${subsystem_friendly} WiFi Signal"
+    update_interval: 60s
+  - platform: uptime
+    name: "${system_friendly} ${subsystem_friendly} Uptime"
+
 text_sensor:
   - platform: version
-    name: "Seedship ${device_id} Shoot Zone Power ESPHome Version"  
+    name: "${system_friendly} ESPHome Version"
 
 time:
   - platform: sntp
-    #id: time
+    # Will turn lights on every 5 minutes from 22:00-9:55. Could also add if: switch.is_off: lights with some potential workarounds?
     timezone: America/Denver
     on_time:
       - seconds: 0
-        minutes: 30
-        hours: 21
-        then: 
-          - switch.turn_on: lights
-          - delay: 12h
-          - switch.turn_off: lights
+        minutes: 0,5,10,15,20,25,30,35,40,45,50,55
+        hours: 21,22,23,0,1,2,3,4,5,6,7,8
+        then:
+          if:
+            condition:
+              and:
+                - switch.is_off: lights
+                - lambda: return id(mode).state == $MODE_RUNNING;
+            then:
+              - delay: $delay
+              - switch.turn_on: lights
+
+  - platform: sntp
+    # Will turn lights off every 5 minutes from 10:00-21:55.
+    timezone: America/Denver
+    on_time:
+      - seconds: 0
+        minutes:  0,5,10,15,20,25,30,35,40,45,50,55
+        hours: 9,10,11,12,13,14,15,16,17,18,19,20
+        then:
+          if:
+            condition:
+              and:
+                - switch.is_on: lights
+                - lambda: return id(mode).state == $MODE_RUNNING;
+            then:
+              - delay: $delay
+              - switch.turn_off: lights
 
 status_led:
   pin:
     number: GPIO2
 
+esphome: !include templates/esphome/esp01_1m.yaml
+wifi: !include secrets/wifi.yaml
+mqtt: !include templates/mqtt/mqtt.yaml
 logger:
+  #level: VERBOSE
 ota:

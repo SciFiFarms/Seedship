@@ -1,0 +1,510 @@
+# This is an unbranded-water-supply-mixer.yaml template.
+substitutions:
+  #debug: !debug
+  <<: !include templates/generated_substitutions.yaml
+
+script:
+  - id: pump_system
+    mode: single
+    then:
+      - logger.log: "Starting Pump System"
+      - switch.turn_off: water_line
+      - lambda: |-
+          id(water).dose();
+      - wait_until:
+          switch.is_off: water
+      - script.execute: repressurize
+      - script.wait: repressurize
+
+
+  - id: repressurize
+    mode: single
+    then:
+      - logger.log: "Repressurizing."
+      - script.execute: clear_pump_system
+      - script.wait: clear_pump_system
+      - lambda: |-
+          id(water_line).dose();
+      - wait_until:
+          switch.is_off: water_line
+      - logger.log: "Finished pressurizing."
+
+  - id: clear_pump_system
+    mode: single
+    then:
+      - logger.log: Start clear_pump_system
+      - script.execute: _clear_pump_system
+      - wait_until:
+          not:
+            script.is_running: _clear_pump_system
+      - logger.log: Finished initial wait for clear_pump_system
+      - if:
+          condition:
+            lambda:
+                return id(bus_psi)->state - 5 >= id(pump_psi)->state || id(pump_psi)->state >= 95;
+          then:
+            - mqtt.publish:
+                topic: seedship/${system}/warnings
+                payload: "${system}: clear_pump_system timed out and had to retry."
+            - script.execute: _clear_pump_system
+            - wait_until:
+                not:
+                  script.is_running: _clear_pump_system
+            - if:
+                condition:
+                  lambda:
+                      return id(bus_psi)->state - 5 >= id(pump_psi)->state || id(pump_psi)->state >= 95;
+                then:
+                  - mqtt.publish:
+                      topic: seedship/${system}/warnings
+                      payload: "${system}: TWICE clear_pump_system has timed out and had to retry."
+                  - script.execute: _clear_pump_system
+                  - wait_until:
+                      not:
+                        script.is_running: _clear_pump_system
+                  - if:
+                      condition:
+                        lambda:
+                            return id(bus_psi)->state - 5 >= id(pump_psi)->state || id(pump_psi)->state >= 95;
+                      then:
+                        - mqtt.publish:
+                            topic: seedship/${system}/warnings
+                            payload: "${system}: THRICE clear_pump_system has timed out and had to retry."
+      - logger.log: Finished final wait for clear_pump_system
+
+  # I prepended "_" because it should be thought of as an internal call.
+  # Error handling and timeout detection is handled higher up the stack.
+  - id: _clear_pump_system
+    mode: single
+    then:
+      - lambda: |-
+          id(discharge).dose();
+      - wait_until:
+          switch.is_off: discharge
+      - script.execute: _clear_pump_system_timeout
+      - wait_until:
+          lambda:
+              return id(bus_psi)->state - 5 < id(pump_psi)->state;
+      - script.stop: _clear_pump_system_timeout
+
+  # Stop _clear_pump when the timeout expires.
+  - id: _clear_pump_system_timeout
+    mode: single
+    then:
+      - delay: 2 min
+      - logger.log: "_clear_pump_system_timeout timeout done"
+      - if:
+          condition:
+            script.is_running: _clear_pump_system
+          then:
+            - logger.log: "_clear_system_pump timed out."
+            - mqtt.publish:
+                topic: seedship/${system}/warnings
+                payload: "${system}: clear_pump_system timed out and had to retry."
+            - script.stop: _clear_pump_system
+      - logger.log: "Finished _clear_pump_system_timeout"
+
+
+  - id: receive_drainage_bus_request
+    mode: parallel
+    then:
+      - lambda: |-
+          json::global_json_buffer.clear();
+          std::string array_string = id(drainage_bus_requests).state;
+          JsonArray& array = json::global_json_buffer.parseArray(array_string);
+
+          array.add(id(drainage_bus_request).state);
+
+          std::string new_array_string;
+          array.printTo(new_array_string);
+          //ESP_LOGW(TAG, "Array: %s (%d)\n\n", new_array_string.c_str(), array.size());
+
+          id(drainage_bus_requests).publish_state(new_array_string.c_str());
+      - script.execute: reserve_drainage_bus
+
+  - id: reserve_drainage_bus
+    mode: queued
+    then:
+      - logger.log: "Changing drainage bus ownership."
+      - script.execute: _drainage_bus_timeout
+      - switch.turn_on: drainage_pump
+      - mqtt.publish:
+          topic: seedship/${system}/drainage_bus_owner
+          # TODO: Make this persist state by setting the value of bus_requests at boot via another sensor subscribed to bus_requests... Maybe persist message?
+          payload: !lambda >-
+              json::global_json_buffer.clear();
+              std::string array_string = id(drainage_bus_requests).state;
+              JsonArray& array = json::global_json_buffer.parseArray(array_string);
+
+              std::string request = array[0];
+              array.remove(0);
+
+              std::string new_array_string;
+              array.printTo(new_array_string);
+              //ESP_LOGW(TAG, "Array: %s (%d)\n\n", new_array_string.c_str(), array.size());
+
+              id(drainage_bus_requests).publish_state(new_array_string.c_str());
+              return request;
+      # Need to allow for the state to actually change.
+      - delay: 1 s
+      - wait_until:
+          condition:
+            text_sensor.state:
+              id: drainage_bus
+              state: "idle"
+      - logger.log: "Finished waiting for idle"
+
+      # Clean up the timeout script if it's still running.
+      - if:
+          condition:
+              script.is_running: _drainage_bus_timeout
+          then:
+              script.stop: _drainage_bus_timeout
+      - switch.turn_off: drainage_pump
+
+  - id: _drainage_bus_timeout
+    then:
+        - delay: 14 min
+        - if:
+            condition:
+                not:
+                  text_sensor.state:
+                    id: drainage_bus
+                    state: "idle"
+            then:
+                - mqtt.publish:
+                    topic: seedship/${system}/warnings
+                    payload: "${system}: Drainage bus timed out; Resetting owner to idle."
+                - mqtt.publish:
+                    topic: seedship/${system}/drainage_bus_owner
+                    payload: "idle"
+
+
+  - id: receive_bus_request
+    mode: parallel
+    then:
+      - lambda: |-
+          json::global_json_buffer.clear();
+          std::string array_string = id(bus_requests).state;
+          JsonArray& array = json::global_json_buffer.parseArray(array_string);
+
+          array.add(id(bus_request).state);
+
+          std::string new_array_string;
+          array.printTo(new_array_string);
+          ESP_LOGW(TAG, "Array: %s (%d)\n\n", new_array_string.c_str(), array.size());
+
+          id(bus_requests).publish_state(new_array_string.c_str());
+      - script.execute: reserve_bus
+
+  - id: reserve_bus
+    mode: queued
+    then:
+      - logger.log: "Changing bus ownership."
+      - script.execute: _bus_timeout
+      - mqtt.publish:
+          topic: seedship/${system}/bus_owner
+          # TODO: Make this persist state by setting the value of bus_requests at boot via another sensor subscribed to bus_requests... Maybe persist message?
+          payload: !lambda >-
+              json::global_json_buffer.clear();
+              std::string array_string = id(bus_requests).state;
+              JsonArray& array = json::global_json_buffer.parseArray(array_string);
+
+              std::string request = array[0];
+              array.remove(0);
+
+              std::string new_array_string;
+              array.printTo(new_array_string);
+              ESP_LOGW(TAG, "Array: %s (%d)\n\n", new_array_string.c_str(), array.size());
+
+              id(bus_requests).publish_state(new_array_string.c_str());
+              return request;
+      # Need to allow for the state to actually change.
+      - delay: 1 s
+      - wait_until:
+          condition:
+            text_sensor.state:
+              id: bus
+              state: "idle"
+      - logger.log: "Finished waiting for idle"
+
+      # Clean up the timeout script if it's still running.
+      - if:
+          condition:
+              script.is_running: _bus_timeout
+          then:
+              script.stop: _bus_timeout
+
+  - id: _bus_timeout
+    then:
+        - delay:  1 min
+        - if:
+            condition:
+                not:
+                  text_sensor.state:
+                    id: bus
+                    state: "idle"
+            then:
+                - mqtt.publish:
+                    topic: seedship/${system}/warnings
+                    payload: "${system}: Bus timed out; Resetting owner to idle."
+                - mqtt.publish:
+                    topic: seedship/${system}/bus_owner
+                    payload: "idle"
+
+switch:
+  # Relay 1
+  # Peristaltic Pump
+  - platform: dosage
+    name: "${system_friendly} Water"
+    command_topic: seedship/${system}/water
+    pin:
+      number: GPIO15
+      mode: OUTPUT
+    id: water
+    restore_mode: ALWAYS_OFF
+    dosage: 30 min
+
+  # Relay 2
+  # Solenoid.
+  - platform: dosage
+    name: "${system_friendly} Discharge"
+    command_topic: seedship/${system}/${subsystem}_discharge
+    pin:
+      number: GPIO5
+      mode: OUTPUT
+    id: discharge
+    restore_mode: ALWAYS_OFF
+    dosage: 15s
+
+  # Relay 3
+  # Solenoid.
+  - platform: dosage
+    name: "${system_friendly} Water Line"
+    command_topic: seedship/${system}/water_line
+    pin:
+      number: GPIO14
+      mode: OUTPUT
+    id: water_line
+    restore_mode: ALWAYS_OFF
+    dosage: 5 min
+
+  # Relay 4
+  - platform: dosage
+    name: "${system_friendly} Drainage Pump"
+    command_topic: seedship/${system}/drainage_pump
+    pin:
+      number: GPIO12
+    id: drainage_pump
+    restore_mode: ALWAYS_OFF
+    dosage: 10 min
+
+  # Relay USB
+  - platform: gpio
+    name: "${system_friendly} ${subsystem_friendly} Esp32 Power"
+    command_topic: seedship/${system}/${subsystem}_esp32_power
+    pin: GPIO4
+    id: esp32_power
+    restore_mode: ALWAYS_ON
+
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: GPIO13
+      mode: INPUT_PULLUP
+      inverted: True
+    name: "${system_friendly} ${subsystem_friendly} Button"
+    on_multi_click:
+      - timing:
+          - ON for at least 3s
+        then:
+          - if:
+              condition:
+                - lambda: |-
+                    return id(mode).state == $MODE_MANUAL_OVERRIDE;
+              then:
+                - lambda: |-
+                    id(mode).publish_state($MODE_RUNNING);
+              else:
+                - lambda: |-
+                    id(mode).publish_state($MODE_MANUAL_OVERRIDE);
+
+      - timing:
+          - ON for at most 1s
+          - OFF for at most 0.3s
+          - ON for at most 1s
+          - OFF for at least 0.2s
+        then:
+          - logger.log: "Double-Clicked"
+          - if:
+              condition:
+                - lambda: |-
+                    return id(mode).state == $MODE_RUNNING;
+              then:
+                - if:
+                    condition:
+                      - script.is_running: pump_system
+                    then:
+                      - logger.log: Already pumping water. Canceling job.
+                      - script.stop: pump_system
+                      - lambda: |-
+                          id(water).cancel_dose();
+                          id(discharge).cancel_dose();
+                          id(water_line).cancel_dose();
+                    else:
+                      - script.execute: pump_system
+
+      - timing:
+          - ON for at most 1s
+          - OFF for at least 0.5s
+        then:
+          - logger.log: "Single-Clicked"
+          - switch.turn_off: water_line
+          - lambda: |-
+              id(discharge).dose();
+
+  - platform: status
+    name: "${system_friendly} ${subsystem_friendly} Status"
+
+sensor:
+  - platform: mqtt_subscribe
+    id: bus_psi
+    topic: seedship/${system}/bus_psi
+    on_value:
+      - if:
+          condition:
+              and:
+                  - sensor.in_range:
+                      id: bus_psi
+                      # This needs to be slightly below the turn on point for the pump.
+                      below: 72
+                  - switch.is_off: water_line
+                  - switch.is_off: water
+                  - not:
+                    - script.is_running: pump_system
+                  - not:
+                    - script.is_running: repressurize
+                  - not:
+                    - script.is_running: clear_pump_system
+                  - lambda: |-
+                      return id(mode).state == $MODE_RUNNING;
+                  - mqtt.connected:
+          then:
+            - logger.log: "Opening water_line"
+            - script.execute: repressurize
+            - script.wait: repressurize
+            - logger.log: "water_line closed. "
+
+            # If it's not to pressure by now, a new batch is needed.
+            - if:
+                condition:
+                  sensor.in_range:
+                    below: 90
+                    id: bus_psi
+                then:
+                  - mqtt.publish:
+                      # TODO: This should be a sensor reserving the mixing system.
+                      topic: seedship/${system}/strawberries
+                      payload: 1
+
+      - if:
+          condition:
+              and:
+                  - sensor.in_range:
+                      id: bus_psi
+                      below: 64
+                  - not:
+                      script.is_running: pump_system
+                  - not:
+                      script.is_running: repressurize
+                  - lambda: |-
+                      return id(mode).state == $MODE_RUNNING;
+                  - mqtt.connected:
+          then:
+            - mqtt.publish:
+                topic: seedship/${system}/strawberries
+                payload: 1
+            - logger.log: "Starting strawberry delay"
+            - delay: 40 min
+            - logger.log: "Finished strawberry delay"
+
+  - platform: mqtt_subscribe
+    id: pump_psi
+    topic: seedship/${system}/pump_psi
+
+  - platform: mqtt_subscribe
+    id: strawberry
+    topic: seedship/${system}/strawberries
+    on_value:
+      - if:
+          condition:
+            - script.is_running: pump_system
+          then:
+            - logger.log: Already pumping water. Exiting.
+          else:
+            - logger.log: Running pump_system
+            - script.execute: pump_system
+
+  - !include templates/sensor/seedship_mode_internal.yaml
+  - platform: wifi_signal
+    name: "${system_friendly} ${subsystem_friendly} WiFi Signal"
+    update_interval: 60s
+  - platform: uptime
+    name: "${system_friendly} ${subsystem_friendly} Uptime"
+
+text_sensor:
+  - platform: version
+    name: "${system_friendly} ${subsystem_friendly} ESPHome Version"
+
+  - platform: mqtt_subscribe
+    name: "${system_friendly} Warnings"
+    #id: warnings
+    topic: seedship/${system}/warnings
+
+  - platform: mqtt_subscribe
+    name: "${system_friendly} Drainage Bus"
+    id: drainage_bus
+    topic: seedship/${water_supply}/drainage_bus_owner
+
+  - platform: mqtt_subscribe
+    name: "${system_friendly} Drainage Bus Requests"
+    id: drainage_bus_request
+    topic: seedship/${system}/drainage_bus_request_access
+    on_value:
+      - script.execute: receive_drainage_bus_request
+
+  - platform: template
+    name: ${system_friendly} Drainage Bus Requests
+    id: drainage_bus_requests
+
+  - platform: mqtt_subscribe
+    name: "${system_friendly} Bus"
+    id: bus
+    topic: seedship/${system}/bus_owner
+
+  - platform: mqtt_subscribe
+    name: "${system_friendly} Bus Requests"
+    id: bus_request
+    topic: seedship/${system}/bus_request_access
+    on_value:
+      - script.execute: receive_bus_request
+
+  - platform: template
+    name: ${system_friendly} Bus Requests
+    id: bus_requests
+
+status_led:
+  pin:
+    number: GPIO2
+
+esphome:
+  <<: !include templates/esphome/esp01_1m.yaml
+  on_boot:
+    then:
+      - script.execute: _drainage_bus_timeout
+      - script.execute: _bus_timeout
+
+wifi: !include secrets/wifi.yaml
+mqtt: !include templates/mqtt/mqtt.yaml
+logger:
+ota:

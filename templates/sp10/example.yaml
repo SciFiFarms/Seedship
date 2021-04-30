@@ -1,0 +1,56 @@
+substitutions:
+  device_name: !gen_device_name
+  plug_name: !gen_device_name
+  mqtt_username: !gen_mqtt_username
+  mqtt_password: !gen_mqtt_password
+
+wifi: !include secrets/wifi.yaml
+mqtt: !include templates/mqtt/mqtt.yaml
+
+# Enable logging
+logger:
+# Enable Over the Air Updates
+ota:
+
+esphome:
+  name: ${plug_name}
+  platform: ESP8266
+  board: esp8285
+  build_path: /tmp/esphome-builds/$device_name/
+
+#api:
+
+#time:
+#  - platform: homeassistant
+#    id: homeassistant_time
+    
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: GPIO13
+      inverted: True
+    name: "${plug_name}_button"
+    on_press:
+      then:
+        - switch.toggle: relay
+    
+switch:
+  - platform: gpio
+    name: "${plug_name}_Relay"
+    pin: GPIO15
+    restore_mode: RESTORE_DEFAULT_OFF
+    id: relay
+  - platform: gpio
+    name: "${plug_name}_LED_Blue"
+    pin: GPIO2
+    inverted: True
+    restore_mode: ALWAYS_OFF
+  - platform: gpio
+    name: "${plug_name}_LED_Red"
+    pin: GPIO0
+    inverted: True
+    restore_mode: ALWAYS_OFF
+
+sensor:
+  - platform: uptime
+    name: ${plug_name}_Uptime Sensor

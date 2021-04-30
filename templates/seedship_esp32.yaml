@@ -1,28 +1,12 @@
 substitutions:
-  device_name: !gen_device_name
-  device_id: !gen_device_id
-  mqtt_username: !gen_mqtt_username
-  mqtt_password: !gen_mqtt_password
-
-wifi: !include secrets/wifi.yaml
-mqtt: !include templates/mqtt/mqtt.yaml
-
-esphome: 
-  name: $device_name 
-  platform: ESP32
-  board: esp32doit-devkit-v1
-  # If it builds in the /config folder like is default, then there arise
-  # conflicts between the server and my machine. /tmp/esphome-build is a volume.
-  build_path: /tmp/esphome-build/$device_name/
-  arduino_version: 1.0.4
-  includes:
-    - custom_components/dual_pot/dual_pot.h
+  #debug: !debug
+  <<: !include templates/generated_substitutions.yaml
 
 # This one is for light
 i2c:
   - id: tsl2561_bus
     sda: GPIO23
-    scl: GPIO22 
+    scl: GPIO22
 
 # This one is for CO2
   - id: scd30_bus
@@ -44,18 +28,19 @@ light:
     return {light_out};
 
   lights:
-    - name: "Seedship $device_id Lights"
+    - name: "${system_friendly} Lights"
 
 sensor:
   - platform: adc
     pin: GPIO34
-    name: Seedship $device_id Root Zone PSI
-    state_topic: seedship/$device_id/root_zone/psi
+    name: ${system_friendly} Root Zone PSI
+    state_topic: seedship/${system}/root_zone_psi
     icon: "mdi:water-pump"
-    update_interval: 1s
-    attenuation: 2.5db
-    expire_after: 60s
+    id: psi
+    update_interval: 15s
+    expire_after: 1 min
     force_update: true
+    attenuation: 11db
     filters:
       #- or:
         #- delta: 10
@@ -66,109 +51,124 @@ sensor:
       #- exponential_moving_average:
           #alpha: .1
           #send_every: 1
-      - offset: -0.44
-      - multiply: 111.1111
+      - calibrate_linear:
+          raw_sensor: 
+            name: $system_friendly Root Zone PSI Raw
+          calibration_sensor: 
+              name: $system_friendly Bus PSI Calibration
+              topic: seedship/${system}/root_zone_psi_calibration
+          datapoints:
+            # 200 PSI sensor
+            - 0.5 -> 0.0
+            - 1.14 -> 25.8
+            - 1.37 -> 35.8
+            - 1.85 -> 55.5
+            - 3.09 -> 103.4
+            - 3.28 -> 109.2
+            ## 300 PSI sensor
+            #- 0.5 -> 0.0
+            #- 0.89 -> 25.4
+            #- 1.35 -> 55
+            #- 2.0 -> 93.3
+            #- 2.1 -> 103.3
+            #- 2.25 -> 110.4
     unit_of_measurement: "PSI"
 
   - platform: dht
     model: DHT22
-    pin: 
-      number: GPIO19
-    temperature:
-      name: Seedship $device_id Ambiant Temperature
-      state_topic: seedship/$device_id/ambiant/temperature
-      expire_after: 75s
-      filters:
-          - or:
-                  - delta: 1
-                  - throttle: 30s
-          - throttle: 0.5s
-    humidity:
-      name: Seedship $device_id Ambiant Humidity
-      state_topic: seedship/$device_id/ambiant/humidity
-      expire_after: 75s
-      filters:
-          - or:
-                  - delta: 1
-                  - throttle: 30s
-          - throttle: 0.5s
-    update_interval: 1s
-  - platform: dht
-    model: DHT22
-    pin: 
+    pin:
       number: GPIO18
     temperature:
-      name: Seedship $device_id Shoot Zone Temperature
-      state_topic: seedship/$device_id/shoot_zone/temperature
-      expire_after: 75s
-      filters:
-          - or:
-                  - delta: 1
-                  - throttle: 30s
-          - throttle: 0.5s
+      name: ${system_friendly} Shoot Zone Temperature
+      id: shoot_zone_temp
+      state_topic: seedship/${system}/shoot_zone_temperature
+      expire_after: 5 min
+      force_update: true
     humidity:
-      name: Seedship $device_id Shoot Zone Humidity
-      state_topic: seedship/$device_id/shoot_zone/humidity
-      expire_after: 75s
-      filters:
-          - or:
-                  - delta: 1
-                  - throttle: 30s
-          - throttle: 0.5s
-    update_interval: 1s
+      name: ${system_friendly} Shoot Zone Humidity
+      id: shoot_zone_humidity
+      state_topic: seedship/${system}/shoot_zone_humidity
+      expire_after: 5 min
+      force_update: true
+    update_interval: 1 min
+  - platform: template
+    name: $system_friendly Shoot Zone VPD
+    accuracy_decimals: 2
+    unit_of_measurement: "kPa"
+    id: shoot_zone_vpd
+    update_interval: 1 min
+    expire_after: 5 min
+    force_update: true
+    lambda: |-
+        return (1 - id(shoot_zone_humidity).state/100)*610.7*pow(10.0,(7.5 * id(shoot_zone_temp).state) / (237.3 + id(shoot_zone_temp).state) )/1000;
+
   - platform: dht
     model: DHT22
     pin: 
       number: GPIO5
     temperature:
-      name: Seedship $device_id Root Zone Temperature
-      state_topic: seedship/$device_id/root_zone/temperature
-      expire_after: 75s
-      filters:
-          - or:
-                  - delta: 1
-                  - throttle: 30s
-          - throttle: 0.5s
+      name: ${system_friendly} Root Zone Temperature
+      state_topic: seedship/${system}/root_zone_temperature
+      expire_after: 5 min
+      force_update: true
     humidity:
-      name: Seedship $device_id Root Zone Humidity
-      state_topic: seedship/$device_id/root_zone/humidity
-      expire_after: 75s
-      filters:
-          - or:
-                  - delta: 1
-                  - throttle: 30s
-          - throttle: 0.5s
-    update_interval: 1s
+      name: ${system_friendly} Root Zone Humidity
+      state_topic: seedship/${system}/root_zone_humidity
+      expire_after: 5 min
+      force_update: true
+    update_interval: 1 min
 
   - platform: tsl2561
     i2c_id: tsl2561_bus
-    name: Seedship $device_id Shoot Zone Lux
-    state_topic: seedship/$device_id/shoot_zone/lux
-    update_interval: 0.5s
-    expire_after: 75s
-    filters:
-        - or:
-                - delta: 1
-                - throttle: 30s
-        - throttle: 0.01s
+    name: ${system_friendly} Shoot Zone Lux
+    state_topic: seedship/${system}/shoot_zone_lux
+    update_interval: 1 min
+    expire_after: 5 min
+    force_update: true
 
   - platform: scd30
     i2c_id: scd30_bus
     co2:
-      name: "Seedship $device_id Shoot Zone CO2"
-      state_topic: seedship/$device_id/shoot_zone/co2
-      #accuracy_decimals: 1
+      name: "${system_friendly} Shoot Zone CO2"
+      state_topic: seedship/${system}/shoot_zone_co2
+      expire_after: 5 min
+      force_update: true
+      accuracy_decimals: 1
     temperature:
-      name: "Seedship $device_id CO2 Temperature"
-      state_topic: seedship/$device_id/shoot_zone/co2_temperature
-      #accuracy_decimals: 2
+      name: "${system_friendly} CO2 Temperature"
+      state_topic: seedship/${system}/shoot_zone_co2_temperature
+      expire_after: 5 min
+      force_update: true
+      accuracy_decimals: 1
     humidity:
-      name: "Seedship $device_id CO2 Humidity"
-      state_topic: seedship/$device_id/shoot_zone/co2_humidity
-      #accuracy_decimals: 1
+      name: "${system_friendly} CO2 Humidity"
+      state_topic: seedship/${system}/shoot_zone_co2_humidity
+      expire_after: 5 min
+      force_update: true
+      accuracy_decimals: 1
     address: 0x61
-    update_interval: 5s
+    update_interval: 1 min
 
+  - !include templates/sensor/seedship_mode.yaml
+  - platform: wifi_signal
+    name: "${system_friendly} ${subsystem_friendly} WiFi Signal"
+    update_interval: 60s
+  - platform: uptime
+    name: "${system_friendly} ${subsystem_friendly} Uptime"
+
+esphome:
+  name: $device_name
+  platform: ESP32
+  board: esp32doit-devkit-v1
+  # If it builds in the /config folder like is default, then there arise
+  # conflicts between the server and my machine. /tmp/esphome-build is a volume.
+  build_path: /tmp/esphome-builds/$device_name/
+  arduino_version: 1.0.4
+  #includes:
+  #  - custom_components/dual_pot/dual_pot.h
+
+wifi: !include secrets/wifi.yaml
+mqtt: !include templates/mqtt/mqtt.yaml
 # Enable logging
 logger:
 # Enable Over the Air Updates

@@ -1,0 +1,168 @@
+# This is an unbranded-water-supply-mixer.yaml template.
+substitutions:
+  #debug: !debug
+  <<: !include templates/generated_substitutions.yaml
+
+script:
+  - id: fertigate_strawberries
+    then:
+      - logger.log: "Starting Furtigation"
+      - lambda: |-
+          id(mixers).dose();
+      - delay: 4 min
+      - lambda: |-
+          id(h2o2).dose();
+      - wait_until:
+          switch.is_off: h2o2
+      - delay: 4 min
+      - lambda: |-
+          id(part_a).dose();
+      - wait_until:
+          switch.is_off: part_a
+      - delay: 4 min
+      - lambda: |-
+          id(part_b).dose();
+      - wait_until:
+          switch.is_off: part_b
+      - delay: 4 min
+
+switch:
+  # Relay 1
+  - platform: dosage
+    name: "${system_friendly} Part A"
+    command_topic: seedship/${system}/part_a
+    pin: GPIO15
+    id: part_a
+    dosage: 20s
+    restore_mode: ALWAYS_OFF
+
+  # Relay 2
+  - platform: dosage
+    name: "${system_friendly} Part B"
+    command_topic: seedship/${system}/part_b
+    pin: GPIO5
+    id: part_b
+    dosage: 20s
+    restore_mode: ALWAYS_OFF
+
+  # Relay 3
+  - platform: dosage
+    name: "${system_friendly} PH Up"
+    command_topic: seedship/${system}/ph_up
+    pin: GPIO14
+    id: ph_up
+    dosage: 10s
+    restore_mode: ALWAYS_OFF
+
+  # Relay 4
+  - platform: dosage
+    name: "${system_friendly} H2O2"
+    command_topic: seedship/${system}/h2o2
+    pin: GPIO12
+    id: h2o2
+    dosage: 20s
+    restore_mode: ALWAYS_OFF
+
+  # Relay USB
+  - platform: dosage
+    name: "${system_friendly} Mixers"
+    command_topic: seedship/${system}/mixers
+    pin:
+      number: GPIO4
+      mode: OUTPUT
+    id: mixers
+    dosage: 40min
+    restore_mode: ALWAYS_OFF
+
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: GPIO13
+      mode: INPUT_PULLUP
+      inverted: True
+    name: "${system_friendly} ${subsystem_friendly} Button"
+    # TODO: Add logic for long click to toggle mixers.
+    on_multi_click:
+      - timing: 
+          - ON for at least 3s
+        then:
+          - logger.log: "Long clicked"
+          - if:
+              condition: 
+                - lambda: |-
+                    return id(mode).state == $MODE_MANUAL_OVERRIDE;
+              then:
+                - lambda: |-
+                    id(mode).publish_state($MODE_RUNNING);
+              else:
+                - lambda: |-
+                    id(mode).publish_state($MODE_MANUAL_OVERRIDE);
+
+      - timing:
+          - ON for at most 1s
+          - OFF for at most 0.3s
+          - ON for at most 1s
+          - OFF for at least 0.2s
+        then:
+          - logger.log: "Double-Clicked"
+          - if:
+              condition:
+                - script.is_running: fertigate_strawberries
+              then:
+                - logger.log: Already mixing strawberry food. Canceling job.
+                - script.stop: fertigate_strawberries
+                - lambda: |-
+                    id(part_a).cancel_dose();
+                    id(part_b).cancel_dose();
+                    id(ph_up).cancel_dose();
+                    id(h2o2).cancel_dose();
+                    id(mixers).cancel_dose();
+      - timing:
+          - ON for at most 1s
+          - OFF for at least 0.5s
+        then:
+          - logger.log: "Single-Clicked"
+          - mqtt.publish:
+              topic: seedship/${system}/strawberries
+              payload: 1
+
+  - platform: status
+    name: "${system_friendly} ${subsystem_friendly} Status"
+
+sensor:
+  - platform: mqtt_subscribe
+    id: strawberry
+    topic: seedship/${system}/strawberries
+    on_value:
+      - if:
+          condition:
+            and:
+                - script.is_running: fertigate_strawberries
+                - lambda: |-
+                    return id(mode).state == $MODE_RUNNING;
+          then:
+            - logger.log: Already mixing strawberry food. Exiting.
+          else:
+            - logger.log: Fertigating
+            - script.execute: fertigate_strawberries
+
+  - !include templates/sensor/seedship_mode_internal.yaml
+  - platform: wifi_signal
+    name: "${system_friendly} ${subsystem_friendly} WiFi Signal"
+    update_interval: 60s
+  - platform: uptime
+    name: "${system_friendly} ${subsystem_friendly} Uptime"
+
+text_sensor:
+  - platform: version
+    name: "${system_friendly} ${subsystem_friendly} ESPHome Version"
+
+status_led:
+  pin:
+    number: GPIO2
+
+esphome: !include templates/esphome/esp01_1m.yaml
+wifi: !include secrets/wifi.yaml
+mqtt: !include templates/mqtt/mqtt.yaml
+logger:
+ota:
