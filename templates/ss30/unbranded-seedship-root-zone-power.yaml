@@ -80,15 +80,7 @@ script:
       - wait_until:
           switch.is_off: drainage
 
-sensor:
-  - !include templates/sensor/seedship_mode_internal.yaml
-  - platform: wifi_signal
-    name: "${system_friendly} ${subsystem_friendly} WiFi Signal"
-    update_interval: 60s
-  - platform: uptime
-    name: "${system_friendly} ${subsystem_friendly} Uptime"
-
-  - id: spray
+  - id: calibrate_clogged_nozzle_detection
     then:
       - delay: $delay
       - mqtt.publish:
@@ -115,6 +107,26 @@ sensor:
           topic: seedship/${water_supply}/bus_owner
           payload: "idle"
 
+  - id: request_spray
+    then:
+      - mqtt.publish:
+          topic: seedship/${water_supply}/bus_request_access
+          payload: ${system}_${subsystem}
+
+  - id: spray
+    then:
+      - delay: 5s
+      - lambda: |-
+          id(pre_psi) = id(bus_psi).state;
+          id(nozzles).dose();
+      - delay: 1s
+      - wait_until:
+          switch.is_off: nozzles
+      - delay: 5s
+      - mqtt.publish:
+          topic: seedship/${water_supply}/bus_owner
+          payload: "idle"
+
 sensor:
   - !include templates/sensor/seedship_mode_internal.yaml
   - platform: wifi_signal
@@ -132,23 +144,37 @@ time:
       - seconds: 0
         minutes: /5
         then:
+          - delay: $delay
+          - if:
+              condition:
+                script.is_running: spray
+              then:
+                # If we don't stop the script, it gets stuck waiting to become the owner.
+                script.stop: spray
           - if:
               condition:
                 - lambda: |-
                     return id(mode).state == $MODE_RUNNING;
               then:
-                - script.execute: spray
+                - script.execute: request_spray
 
       # Mist Roots - Emergency mode.
       - seconds: 0
         minutes: /30
         then:
+          - delay: $delay
+          - if:
+              condition:
+                script.is_running: spray
+              then:
+                # If we don't stop the script, it gets stuck waiting to become the owner.
+                script.stop: spray
           - if:
               condition:
                 - lambda: |-
                     return id(mode).state == $MODE_WATER_SUPPLY_ERROR;
               then:
-                - script.execute: spray
+                - script.execute: request_spray
 
       # Drain Root zone
       - seconds: 0
@@ -162,7 +188,25 @@ text_sensor:
   - platform: mqtt_subscribe
     name: "${system_friendly} Bus"
     id: bus
+    qos: 2
     topic: seedship/${water_supply}/bus_owner
+    on_value:
+      - if:
+          condition:
+              - text_sensor.state:
+                  id: bus
+                  state: ${system}_${subsystem}
+          then:
+              script.execute: spray
+          else:
+              - if:
+                  condition:
+                      - text_sensor.state:
+                          id: bus
+                          state: "idle"
+                      - switch.is_on: nozzles
+                  then:
+                      - switch.turn_off: nozzles
 
   - platform: mqtt_subscribe
     #name: "Data from topic"
