@@ -3,6 +3,12 @@ substitutions:
   #debug: !debug
   <<: !include templates/generated_substitutions.yaml
 
+globals:
+  - id: pre_psi
+    type: float
+    restore_value: no
+    initial_value: '0'
+
 switch:
   # Relay 1
   - platform: dosage
@@ -115,14 +121,17 @@ script:
 
   - id: spray
     then:
-      - delay: 5s
+      - delay: 10s
       - lambda: |-
           id(pre_psi) = id(bus_psi).state;
           id(nozzles).dose();
       - delay: 1s
       - wait_until:
           switch.is_off: nozzles
-      - delay: 5s
+      - delay: 10s
+      - lambda: |-
+          float post_psi = id(bus_psi).state;
+          id(psi_drop).publish_state(id(pre_psi) - post_psi);
       - mqtt.publish:
           topic: seedship/${water_supply}/bus_owner
           payload: "idle"
@@ -134,6 +143,18 @@ sensor:
     update_interval: 60s
   - platform: uptime
     name: "${system_friendly} ${subsystem_friendly} Uptime"
+
+  - platform: mqtt_subscribe
+    id: bus_psi
+    topic: seedship/${water_supply}/bus_psi
+
+  - platform: template
+    name: $system_friendly ${subsystem_friendly} PSI Drop
+    accuracy_decimals: 2
+    unit_of_measurement: "PSI"
+    id: psi_drop
+    #expire_after: 5 min
+    force_update: true
 time:
   - platform: sntp
     #id: time
