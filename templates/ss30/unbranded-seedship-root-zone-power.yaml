@@ -77,14 +77,22 @@ binary_sensor:
     name: "${system_friendly} ${subsystem_friendly} Status"
 
 script:
-  - id: drain
+  - id: request_drain
     then:
       - mqtt.publish:
           topic: seedship/${water_supply}/drainage_bus_request_access
           payload: ${system}_${subsystem}
-      - delay: 30 s
-      - wait_until:
-          switch.is_off: drainage
+
+  - id: drain
+    then:
+        - lambda: !lambda
+            id(drainage).dose();
+        - delay: 1s
+        - wait_until:
+            switch.is_off: drainage
+        - mqtt.publish:
+            topic: seedship/${water_supply}/drainage_bus_owner
+            payload: "idle"
 
   - id: calibrate_clogged_nozzle_detection
     then:
@@ -227,7 +235,13 @@ time:
         hours: /3
         then:
           - delay: $long_delay
-          - script.execute: drain
+          - if:
+              condition:
+                # If we don't stop the script, it gets stuck waiting to become the owner.
+                script.is_running: drain
+              then:
+                script.stop: drain
+          - script.execute: request_drain
 
 text_sensor:
   - platform: mqtt_subscribe
