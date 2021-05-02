@@ -133,6 +133,38 @@ sensor:
     address: 0x61
     update_interval: 1 min
 
+time:
+  - platform: sntp
+    #id: time
+    # TODO: This should be read from an env var.
+    timezone: America/Denver
+    on_time:
+      - seconds: 0
+        minutes: /1
+        then:
+          - lambda: |-
+              static float second_to_last_psi = 0;
+              static bool rapid_drop = false;
+              static float last_psi = 0;
+              float drop = last_psi - id(bus_psi).state;
+              const char* TAG = "RAPID_PSI_DROP_DETECTION";
+              ESP_LOGW(TAG, "Drop: %f\n\n", drop);
+
+              if ((last_psi - 9 > id(bus_psi).state) || (last_psi -3 > id(bus_psi).state && rapid_drop)) {
+                ESP_LOGW(TAG, ("CRITICAL! ${system} has had a rapid PSI drop. Current: " + to_string( id(bus_psi).state ) + " Last: " + to_string( last_psi )).c_str());
+                id(mqtt_client).publish("seedship/${system}/warnings", ("CRITICAL! ${system} has had a rapid PSI drop. Current: " + to_string( id(bus_psi).state ) + " Last: " + to_string( last_psi )).c_str());
+                id(mqtt_client).publish("seedship/${system}/mode", "$MODE_WATER_SUPPLY_ERROR");
+              } else if (last_psi - 3 > id(bus_psi).state ) {
+                ESP_LOGW(TAG, ("WARNING! ${system} has had a rapid PSI drop. Current: " + to_string( id(bus_psi).state ) + " Last: " + to_string( last_psi )).c_str() );
+                id(mqtt_client).publish("seedship/${system}/warnings", ("WARNING! ${system} has had a rapid PSI drop. Current: " + to_string( id(bus_psi).state ) + " Last: " + to_string( last_psi )).c_str());
+
+                rapid_drop = true;
+              } else {
+                rapid_drop = false;
+              }
+
+              last_psi = id(bus_psi).state;
+
 # Enable logging
 logger:
 # Enable Over the Air Updates
