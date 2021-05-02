@@ -186,31 +186,44 @@ time:
     timezone: America/Denver
     on_time:
       - seconds: 0
-        minutes: 0,5,10,15,20,25,30,35,40,45,50,55
-        hours: 21,22,23,0,1,2,3,4,5,6,7,8
+        minutes: /5
+        hours: 21-23,0-8
         then:
-          if:
-            condition:
-              and:
-                - switch.is_off: lights
-                - lambda: return id(mode).state == $MODE_RUNNING;
-            then:
-              - delay: $delay
-              - switch.turn_on: lights
+            - if:
+                condition:
+                    - lambda: return id(mode).state == $MODE_RUNNING;
+                then:
+                    - if:
+                        condition:
+                            - switch.is_off: lights
+                        then:
+                            - delay: $delay
+                            - switch.turn_on: lights
+
+                else:
+                    - if:
+                        condition:
+                            and:
+                              - switch.is_on: lights
+                              - lambda: return id(mode).state == $MODE_WATER_SUPPLY_ERROR;
+                        then:
+                            - switch.turn_off: lights
 
   - platform: sntp
     # Will turn lights off every 5 minutes from 10:00-21:55.
     timezone: America/Denver
     on_time:
       - seconds: 0
-        minutes:  0,5,10,15,20,25,30,35,40,45,50,55
-        hours: 9,10,11,12,13,14,15,16,17,18,19,20
+        minutes: /5
+        hours: 9-20
         then:
           if:
             condition:
               and:
                 - switch.is_on: lights
-                - lambda: return id(mode).state == $MODE_RUNNING;
+                - or:
+                  - lambda: return id(mode).state == $MODE_RUNNING;
+                  - lambda: return id(mode).state == $MODE_WATER_SUPPLY_ERROR;
             then:
               - delay: $delay
               - switch.turn_off: lights

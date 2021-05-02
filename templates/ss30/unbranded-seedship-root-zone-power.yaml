@@ -134,10 +134,34 @@ script:
           id(psi_drop).publish_state(id(pre_psi) - post_psi);
       - mqtt.publish:
           topic: seedship/${water_supply}/bus_owner
+          qos: 1
           payload: "idle"
 
+  - id: stop_device
+    then:
+      - logger.log: "Stopping any running water_nozzles, drainage, or co2 switches."
+      - if:
+          condition:
+              - switch.is_on: nozzles
+          then:
+              - switch.turn_off: nozzles
+      - if:
+          condition:
+              - switch.is_on: drainage
+          then:
+              - switch.turn_off: drainage
+      - if:
+          condition:
+              - switch.is_on: co2_input
+          then:
+              - switch.turn_off: co2_input
+
 sensor:
-  - !include templates/sensor/seedship_mode_internal.yaml
+  - <<: !include templates/sensor/seedship_mode_internal.yaml
+    on_value:
+      then:
+        - script.execute: stop_device
+
   - platform: wifi_signal
     name: "${system_friendly} ${subsystem_friendly} WiFi Signal"
     update_interval: 60s
@@ -230,8 +254,9 @@ text_sensor:
                       - switch.turn_off: nozzles
 
   - platform: mqtt_subscribe
-    #name: "Data from topic"
+    name: "${system_friendly} Drainage Bus"
     id: drainage_bus
+    qos: 2
     topic: seedship/${water_supply}/drainage_bus_owner
     on_value:
       - if:
@@ -240,15 +265,16 @@ text_sensor:
               id: drainage_bus
               state: ${system}_${subsystem}
           then:
-            - lambda: !lambda
-                id(drainage).dose();
-            - wait_until:
-                switch.is_off: drainage
-            #- delay: !lambda
-            #    return id(drainage).get_dosage();
-            - mqtt.publish:
-                topic: seedship/${water_supply}/drainage_bus_owner
-                payload: "idle"
+              - script.execute: drain
+          else:
+              - if:
+                  condition:
+                      - text_sensor.state:
+                          id: drainage_bus
+                          state: "idle"
+                      - switch.is_on: drainage
+                  then:
+                      - switch.turn_off: drainage
 
   - platform: version
     name: "${system_friendly} ${subsystem_friendly} ESPHome Version"

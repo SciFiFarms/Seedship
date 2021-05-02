@@ -398,9 +398,12 @@ sensor:
             # If it's not to pressure by now, a new batch is needed.
             - if:
                 condition:
-                  sensor.in_range:
-                    below: 90
-                    id: bus_psi
+                  and:
+                    - sensor.in_range:
+                        below: 90
+                        id: bus_psi
+                    - lambda: |-
+                        return id(mode).state == $MODE_RUNNING;
                 then:
                   - mqtt.publish:
                       # TODO: This should be a sensor reserving the mixing system.

@@ -149,7 +149,7 @@ sensor:
     address: 0x61
     update_interval: 1 min
 
-  - !include templates/sensor/seedship_mode.yaml
+  - !include templates/sensor/seedship_mode_internal.yaml
   - platform: wifi_signal
     name: "${system_friendly} ${subsystem_friendly} WiFi Signal"
     update_interval: 60s
