@@ -28,10 +28,10 @@ switch:
 
   # Relay 3
   - platform: gpio
-    name: "${system_friendly} ${subsystem_friendly} Air Intake"
-    command_topic: seedship/${system}/${subsystem}_air_intake
+    name: "${system_friendly} ${subsystem_friendly} CO2 Input"
+    command_topic: seedship/${system}/${subsystem}_co2_input
     pin: GPIO14
-    id: air_intake
+    id: co2_input
 
   # Relay 4
   - platform: dosage

@@ -28,52 +28,9 @@ light:
     return {light_out};
 
   lights:
-    - name: "${system_friendly} Lights"
+    - name: "${system_friendly} Shoot Zone Lights"
 
 sensor:
-  - platform: adc
-    pin: GPIO34
-    name: ${system_friendly} Root Zone PSI
-    state_topic: seedship/${system}/root_zone_psi
-    icon: "mdi:water-pump"
-    id: psi
-    update_interval: 15s
-    expire_after: 1 min
-    force_update: true
-    attenuation: 11db
-    filters:
-      #- or:
-        #- delta: 10
-        #- throttle: 1s
-      - sliding_window_moving_average:
-          window_size: 10
-          send_every: 1
-      #- exponential_moving_average:
-          #alpha: .1
-          #send_every: 1
-      - calibrate_linear:
-          raw_sensor: 
-            name: $system_friendly Root Zone PSI Raw
-          calibration_sensor: 
-              name: $system_friendly Bus PSI Calibration
-              topic: seedship/${system}/root_zone_psi_calibration
-          datapoints:
-            # 200 PSI sensor
-            - 0.5 -> 0.0
-            - 1.14 -> 25.8
-            - 1.37 -> 35.8
-            - 1.85 -> 55.5
-            - 3.09 -> 103.4
-            - 3.28 -> 109.2
-            ## 300 PSI sensor
-            #- 0.5 -> 0.0
-            #- 0.89 -> 25.4
-            #- 1.35 -> 55
-            #- 2.0 -> 93.3
-            #- 2.1 -> 103.3
-            #- 2.25 -> 110.4
-    unit_of_measurement: "PSI"
-
   - platform: dht
     model: DHT22
     pin:

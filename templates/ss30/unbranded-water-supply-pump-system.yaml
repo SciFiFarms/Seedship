@@ -256,8 +256,8 @@ switch:
   # Relay 1
   # Peristaltic Pump
   - platform: dosage
-    name: "${system_friendly} Water"
-    command_topic: seedship/${system}/water
+    name: "${system_friendly} Clean Water"
+    command_topic: seedship/${system}/clean_water
     pin:
       number: GPIO15
       mode: OUTPUT
