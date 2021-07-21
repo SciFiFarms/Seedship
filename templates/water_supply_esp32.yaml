@@ -54,8 +54,8 @@ sensor:
             name: $system_friendly Pump PSI Raw
             id: pump_psi_raw
           calibration_sensor:
-              name: $system_friendly Pump PSI Calibration
-              topic: seedship/${system}/pump_psi_calibration
+            name: $system_friendly Pump PSI Calibration
+            topic: seedship/${system}/pump_psi_calibration
           datapoints:
             # 200 PSI sensor
             - 0.5 -> 0.0
