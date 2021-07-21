@@ -25,7 +25,7 @@ time:
   - platform: sntp
     id: sntp_time
     timezone: America/Denver
-    
+
 binary_sensor:
   - platform: gpio
     pin:
@@ -35,7 +35,7 @@ binary_sensor:
     on_press:
       then:
         - switch.toggle: relay
-    
+
 switch:
 - platform: gpio
   name: "${plug_name} Relay"
@@ -65,31 +65,35 @@ sensor:
       name: "${plug_name} Amperage"
       unit_of_measurement: A
       expire_after: 75s
+      force_update: true
       filters:
-        - or:
-          - delta: 0.1
-          - throttle: 30s
-        - throttle: 0.01s
+        - calibrate_linear:
+          - 1.0 -> 1.0
+          - 2.0 -> 2.0
+          - 3.0 -> 3.0
     voltage:
       name: "${plug_name} Voltage"
       unit_of_measurement: V
       expire_after: 75s
       filters:
-        - throttle: 30s
+        - calibrate_linear:
+          - 1.0 -> 1.0
+          - 2.0 -> 2.0
+          - 3.0 -> 3.0
+      force_update: true
     power:
       name: "${plug_name} Wattage"
       unit_of_measurement: W
       id: "${plug_name}_Wattage"
       expire_after: 75s
       filters:
-        - or:
-          - delta: 2
-          - throttle: 30s
-        - throttle: 0.01s
-        #    window_size: 7
-        #    send_every: 2
+        - calibrate_linear:
+          - 1.0 -> 1.0
+          - 2.0 -> 2.0
+          - 3.0 -> 3.0
+      force_update: true
     change_mode_every: 8
-    update_interval: 100ms
+    update_interval: 1000ms
 
 # - platform: total_daily_energy
 #    name: "${plug_name}_Total Daily Energy"
@@ -98,7 +102,7 @@ sensor:
         # Multiplication factor from W to kW is 0.001
 #        - multiply: 0.001
 #    unit_of_measurement: kWh
-      
+
 # Extra sensor to keep track of plug uptime
   - platform: uptime
     name: ${plug_name} Uptime Sensor
