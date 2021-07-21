@@ -59,21 +59,22 @@ sensor:
     lambda: |-
         return (1 - id(shoot_zone_humidity).state/100)*610.7*pow(10.0,(7.5 * id(shoot_zone_temp).state) / (237.3 + id(shoot_zone_temp).state) )/1000;
 
-  - platform: dht
-    model: DHT22
-    pin: 
-      number: GPIO5
-    temperature:
-      name: ${system_friendly} Root Zone Temperature
-      state_topic: seedship/${system}/root_zone_temperature
-      expire_after: 5 min
-      force_update: true
-    humidity:
-      name: ${system_friendly} Root Zone Humidity
-      state_topic: seedship/${system}/root_zone_humidity
-      expire_after: 5 min
-      force_update: true
-    update_interval: 1 min
+  # TODO: Take the temperature of the root zone. Need a water proof sensor.
+  #- platform: dht
+  #  model: DHT22
+  #  pin:
+  #    number: GPIO5
+  #  temperature:
+  #    name: ${system_friendly} Root Zone Temperature
+  #    state_topic: seedship/${system}/root_zone_temperature
+  #    expire_after: 5 min
+  #    force_update: true
+  #  humidity:
+  #    name: ${system_friendly} Root Zone Humidity
+  #    state_topic: seedship/${system}/root_zone_humidity
+  #    expire_after: 5 min
+  #    force_update: true
+  #  update_interval: 1 min
 
   - platform: tsl2561
     i2c_id: tsl2561_bus

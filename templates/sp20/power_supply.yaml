@@ -1,5 +1,6 @@
 substitutions:
   #debug: !debug
+  plug_name: !gen_device_name
   <<: !include templates/generated_substitutions.yaml
 
 binary_sensor:
@@ -11,7 +12,7 @@ binary_sensor:
     on_press:
       then:
         - switch.toggle: relay
-    
+
 switch:
 - platform: gpio
   name: "${system_friendly} Relay"
@@ -45,10 +46,10 @@ sensor:
       force_update: true
       filters:
         - calibrate_linear:
-            raw_sensor: 
+            raw_sensor:
               name: $system_friendly Power Current Calibration
               id: current_raw
-            calibration_sensor: 
+            calibration_sensor:
                 name: $system_friendly Power Current Calibration
                 topic: seedship/${system}/power_current_calibration
             datapoints:
@@ -61,10 +62,10 @@ sensor:
       force_update: true
       filters:
         - calibrate_linear:
-            raw_sensor: 
+            raw_sensor:
               name: $system_friendly Power Voltage Calibration
               id: voltage_raw
-            calibration_sensor: 
+            calibration_sensor:
                 name: $system_friendly Power Voltage Calibration
                 topic: seedship/${system}/power_voltage_calibration
             datapoints:
@@ -78,10 +79,10 @@ sensor:
       force_update: true
       filters:
         - calibrate_linear:
-            raw_sensor: 
+            raw_sensor:
               name: $system_friendly Power Wattage Calibration
               id: wattage_raw
-            calibration_sensor: 
+            calibration_sensor:
                 name: $system_friendly Power Wattage Calibration
                 topic: seedship/${system}/power_wattage_calibration
             datapoints:
@@ -111,4 +112,4 @@ esphome: !include templates/esphome/esp8285.yaml
 wifi: !include secrets/wifi.yaml
 mqtt: !include templates/mqtt/mqtt.yaml
 logger:
-ota: 
+ota:

@@ -18,7 +18,7 @@ sensor:
 
 text_sensor:
   - platform: version
-    name: "${device_name} ESPHome version"  
+    name: "${device_name} ESPHome version"
 
 switch:
   - platform: gpio
@@ -51,11 +51,22 @@ status_led:
   pin:
     number: GPIO04
 
+# Example of how periodically run a thing.
+#time:
+#  - platform: sntp
+#    timezone: America/Denver
+#    on_time:
+#      - seconds: 0
+#        minutes: /8
+#        then:
+#          - switch.turn_on: relay2
+#          - delay: 180s
+#          - switch.turn_off: relay2
 
 # Enable logging
 logger:
 # Enable Home Assistant API
-# Can't use api AND mqtt. 
+# Can't use api AND mqtt.
 #api:
 # Enable Over the Air Updates
 ota:
