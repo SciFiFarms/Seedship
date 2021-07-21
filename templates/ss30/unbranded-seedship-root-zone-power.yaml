@@ -142,7 +142,6 @@ script:
 
   - id: spray
     then:
-      - delay: 10s
       - lambda: |-
           id(pre_psi) = id(bus_psi).state;
           id(nozzles).dose();
@@ -152,12 +151,28 @@ script:
       - delay: 10s
       - lambda: |-
           float post_psi = id(bus_psi).state;
-          id(psi_drop).publish_state(id(pre_psi) - post_psi);
+          // Only publish the drop if it's positive. If it's negative, the system was likely pressurizing.
+          if (id(pre_psi) - post_psi > 0) {
+            id(psi_drop).publish_state(id(pre_psi) - post_psi);
+          }
+
           //if (post_psi - id(pre_psi) < id(current_clogged_nozzle_value).state - (id(current_clogged_nozzle_value).state * 0.2))
           //{
           //  id(mqtt_client).publish("seedship/${water_supply}/warnings", "Warning! Nozzles for ${system} appear to be clogged.");
           //}
 
+          id(pre_psi) = id(bus_psi).state;
+      - delay: 10s
+      - lambda: |-
+          float post_psi = id(bus_psi).state;
+          // Check if the PSI drop is still happening. If it is, pulse the switch and throw an alert.
+          if (id(pre_psi) - post_psi > .2) {
+            id(mqtt_client).publish("seedship/${water_supply}/warnings", "CRITICAL! Nozzles for ${system} appear to be stuck open.");
+            id(nozzles).dose_for_seconds(4);
+          }
+      - delay: 1s
+      - wait_until:
+          switch.is_off: nozzles
       - mqtt.publish:
           topic: seedship/${water_supply}/bus_owner
           qos: 1
