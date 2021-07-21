@@ -1,0 +1,214 @@
+substitutions:
+  #debug: !debug
+  <<: !include templates/generated_substitutions.yaml
+
+wifi: !include secrets/wifi.yaml
+mqtt: !include templates/mqtt/mqtt.yaml
+
+esphome:
+  name: $device_name
+  platform: ESP8266
+  board: huzzah
+
+  # If it builds in the /config folder like is default, then there arise
+  # conflicts between the server and my machine. /tmp/esphome-build is a volume.
+  build_path: /tmp/esphome-builds/$device_name/
+
+i2c:
+  sda: D4
+  scl: D5
+  scan: True
+  ## This one is for CO2
+  #- id: scd30_bus
+  #  sda: GPIO27
+  #  scl: GPIO26
+  #  scan: False
+  #  frequency: 50kHz
+
+output:
+  - platform: gpio
+    id: unusd1
+    pin:
+      number: D14
+      mode: OUTPUT
+  - platform: gpio
+    id: unused2
+    pin:
+      number: D13
+      mode: OUTPUT
+  - platform: gpio
+    id: unused3
+    pin:
+      number: D12
+      mode: OUTPUT
+
+sensor:
+  #- !include templates/sensor/seedship_mode.yaml
+  - platform: ezo
+    id: water_temp
+    name: $system_friendly Temp
+    address: 102
+    accuracy_decimals: 2
+    unit_of_measurement: "°C"
+    update_interval: 10s
+  - platform: ezo
+    id: ph_ezo
+    name: $system_friendly Ph
+    address: 99
+    unit_of_measurement: "pH"
+    update_interval: 10s
+  - platform: ezo
+    id: ec_ezo
+    name: $system_friendly EC
+    address: 100
+    unit_of_measurement: "mS/cm"
+    update_interval: 10s
+
+  - platform: adc
+    pin: GPIO32
+    name: $system_friendly RO PSI
+    state_topic: seedship/${system}/ro_psi
+    icon: "mdi:water-pump"
+    id: ro_psi
+    update_interval: 1.3s
+    expire_after: 60s
+    force_update: true
+    attenuation: 6db
+    #attenuation: 11db
+    filters:
+      #- median:
+      #    window_size: 49
+      #    send_every: 25
+      #    send_first_at: 25
+      - calibrate_linear:
+          raw_sensor:
+            name: $system_friendly RO PSI Raw
+            id: ro_psi_raw
+          calibration_sensor:
+              name: $system_friendly RO PSI Calibration
+              topic: seedship/${system}/ro_psi_calibration
+          datapoints:
+            # 200 PSI sensor
+            - 0.5 -> 0.0
+            - 1.14 -> 25.8
+            - 1.37 -> 35.8
+            - 1.85 -> 55.5
+            - 3.09 -> 103.4
+            - 3.28 -> 109.2
+            ## 300 PSI sensor
+            #- 0.5 -> 0.0
+            #- 0.89 -> 25.4
+            #- 1.35 -> 55
+            #- 2.0 -> 93.3
+            #- 2.1 -> 103.3
+            #- 2.25 -> 110.4
+    unit_of_measurement: "PSI"
+
+  - platform: adc
+    # TODO: This pin will be different
+    pin: GPIO33
+    name: ${system_friendly} EC Sensor
+    state_topic: seedship/${system}/ec_sensor
+    icon: "mdi:water-pump"
+    id: ec
+    update_interval: 30s
+    expire_after: 1 min
+    force_update: true
+    # TODO: Adjust this?
+    #attenuation: 11db
+    filters:
+      #- or:
+        #- delta: 10
+        #- throttle: 1s
+      #- sliding_window_moving_average:
+      #    window_size: 10
+      #    send_every: 1
+      #- exponential_moving_average:
+          #alpha: .1
+            #send_every: 1
+      - calibrate_linear:
+          raw_sensor:
+            accuracy_decimals: 5
+            name: $system_friendly EC Sensor
+          calibration_sensor:
+              name: $system_friendly EC Sensor
+              topic: seedship/${system}/ec_sensor_calibration
+          datapoints:
+            # 200 PSI sensor
+            - 0.5 -> 0.5
+            - 1 -> 1
+            - 2 -> 2
+    unit_of_measurement: "mS/cm"
+    accuracy_decimals: 5
+
+  - platform: adc
+    pin: GPIO32
+    name: ${system_friendly} Water Temperature
+    state_topic: seedship/${system}/water_temperature
+    icon: "mdi:water-pump"
+    id: water_temperature
+    update_interval: 30s
+    expire_after: 1 min
+    force_update: true
+    # TODO: Adjust this?
+    #attenuation: 11db
+    filters:
+      #- or:
+        #- delta: 10
+        #- throttle: 1s
+      #- sliding_window_moving_average:
+      #    window_size: 10
+      #    send_every: 1
+      #- exponential_moving_average:
+          #alpha: .1
+          #send_every: 1
+      - calibrate_linear:
+          raw_sensor:
+            name: $system_friendly Water Temperature
+          calibration_sensor:
+              name: $system_friendly Water Temperature
+              topic: seedship/${system}/water_temperature_calibration
+          datapoints:
+            # 200 PSI sensor
+            - 0.5 -> 0.5
+            - 1 -> 1
+            - 2 -> 2
+    unit_of_measurement: "C"
+
+
+time:
+  - platform: sntp
+    #id: time
+    # TODO: This should be read from an env var.
+    timezone: America/Denver
+    #on_time:
+    #  - seconds: 0
+    #    minutes: /1
+    #    then:
+    #      - lambda: |-
+    #          static float second_to_last_psi = 0;
+    #          static bool rapid_drop = false;
+    #          static float last_psi = 0;
+    #          float drop = last_psi - id(bus_psi).state;
+    #          const char* TAG = "RAPID_PSI_DROP_DETECTION";
+    #          ESP_LOGW(TAG, "Drop: %f\n\n", drop);
+
+    #          if ((last_psi - 9 > id(bus_psi).state) || (last_psi -3 > id(bus_psi).state && rapid_drop)) {
+    #            ESP_LOGW(TAG, ("CRITICAL! ${system} has had a rapid PSI drop. Current: " + to_string( id(bus_psi).state ) + " Last: " + to_string( last_psi )).c_str());
+    #            id(mqtt_client).publish("seedship/${system}/warnings", ("CRITICAL! ${system} has had a rapid PSI drop. Current: " + to_string( id(bus_psi).state ) + " Last: " + to_string( last_psi )).c_str());
+    #            id(mqtt_client).publish("seedship/${system}/mode", "$MODE_WATER_SUPPLY_ERROR");
+    #          } else if (last_psi - 3 > id(bus_psi).state ) {
+    #            ESP_LOGW(TAG, ("WARNING! ${system} has had a rapid PSI drop. Current: " + to_string( id(bus_psi).state ) + " Last: " + to_string( last_psi )).c_str() );
+    #            id(mqtt_client).publish("seedship/${system}/warnings", ("WARNING! ${system} has had a rapid PSI drop. Current: " + to_string( id(bus_psi).state ) + " Last: " + to_string( last_psi )).c_str());
+
+    #            rapid_drop = true;
+    #          } else {
+    #            rapid_drop = false;
+    #          }
+
+    #          last_psi = id(bus_psi).state;
+
+# Enable logging
+logger:
+# Enable Over the Air Updates
+ota:
