@@ -5,6 +5,7 @@ substitutions:
 
 packages:
   package-bus: !include packages/bus.yaml
+
 script:
   - id: pump_system
     mode: single
@@ -20,16 +21,68 @@ script:
 
 
   - id: repressurize
+    mode: queued
+    then:
+      - if:
+          condition:
+              - lambda: |-
+                  return id(bus_psi)->state >= 95;
+          then:
+              - lambda: |-
+                  id(bus_psi_increasing) = false;
+              - script.stop: _repressurize_timeout
+              - logger.log: "Finished pressurizing."
+          else:
+              - logger.log: "Repressurizing."
+              - if:
+                  condition:
+                      - not:
+                        - script.is_running: _repressurize_timeout
+                      - lambda: |-
+                          return ! id(bus_psi_increasing);
+                  then:
+                      - script.execute: clear_pump_system
+                      - script.wait: clear_pump_system
+                      - script.execute: _repressurize_timeout
+
+              - lambda: |-
+                  id(pre_psi) = id(bus_psi).state;
+                  id(water_line).dose();
+              - delay: !lambda |-
+                  return id(discharge).get_dosage() - 1000;
+              #- wait_until:
+              #    switch.is_off: water_line
+              - if:
+                  condition:
+                      # diff is increasing
+                      - lambda: |-
+                          float post_psi = id(bus_psi).state;
+                          // TODO: This should probably be a little bigger than 0?
+                          ESP_LOGW(TAG, "PSI Increasing: %f, %f, %f ", id(pre_psi), post_psi, id(pre_psi) - post_psi);
+                          id(bus_psi_increasing) = ( post_psi - id(pre_psi) > 1 );
+
+                          ESP_LOGW(TAG, "PSI Increasing: %s ", (id(bus_psi_increasing))?"true":"false");
+                          return id(bus_psi_increasing);
+                  then:
+                      - script.stop: _repressurize_timeout
+                      - script.execute: _repressurize_timeout
+              - script.execute: repressurize
+
+  - id: _repressurize_timeout
     mode: single
     then:
-      - logger.log: "Repressurizing."
-      - script.execute: clear_pump_system
-      - script.wait: clear_pump_system
-      - lambda: |-
-          id(water_line).dose();
-      - wait_until:
-          switch.is_off: water_line
-      - logger.log: "Finished pressurizing."
+      - delay: 2 min
+      - logger.log: "_repressurize_timeout delay completed."
+      - if:
+          condition:
+            script.is_running: repressurize
+          then:
+            - logger.log: "repressurize timed out."
+            - mqtt.publish:
+                topic: seedship/${system}/warnings
+                payload: "${system}: repressurize timed out and had to retry."
+            - script.stop: repressurize
+      - logger.log: "Finished _repressurize_timeout"
 
   - id: clear_pump_system
     mode: single
@@ -219,7 +272,7 @@ switch:
       mode: OUTPUT
     id: water_line
     restore_mode: ALWAYS_OFF
-    dosage: 5 min
+    dosage: 30 s
 
   # Relay 4
   - platform: dosage
@@ -422,7 +475,6 @@ esphome:
   on_boot:
     then:
       - script.execute: _drainage_bus_timeout
-      - script.execute: _bus_timeout
 
 wifi: !include secrets/wifi.yaml
 mqtt: !include templates/mqtt/mqtt.yaml
