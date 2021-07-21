@@ -40,14 +40,15 @@ sensor:
     state_topic: seedship/${system}/pump_psi
     icon: "mdi:water-pump"
     id: pump_psi
-    update_interval: 1s
+    update_interval: 0.3s
     expire_after: 60s
     force_update: true
     attenuation: 11db
     filters:
-      - sliding_window_moving_average:
-          window_size: 10
-          send_every: 5
+      - median:
+          window_size: 25
+          send_every: 12
+          send_first_at: 12
       - calibrate_linear:
           raw_sensor:
             name: $system_friendly Pump PSI Raw
@@ -78,14 +79,15 @@ sensor:
     state_topic: seedship/${system}/bus_psi
     icon: "mdi:water-pump"
     id: bus_psi
-    update_interval: 1s
+    update_interval: 0.3s
     expire_after: 60s
     force_update: true
     attenuation: 11db
     filters:
-      - sliding_window_moving_average:
-          window_size: 10
-          send_every: 5
+      - median:
+          window_size: 25
+          send_every: 12
+          send_first_at: 12
       - calibrate_linear:
           raw_sensor:
             name: $system_friendly Bus PSI Raw
