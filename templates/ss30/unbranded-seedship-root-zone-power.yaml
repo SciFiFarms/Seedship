@@ -117,6 +117,19 @@ script:
             id(mqtt_client).publish("seedship/${water_supply}/warnings", "Warning! Nozzles for ${system} appear to be clogged.");
           }
       - delay: 10s
+      - lambda: |-
+          int number_of_reads = 5;
+          float psi_sum=0.0;
+          for( int i = 0; i < number_of_reads; i++)
+          {
+            float psi_pre = id(bus_psi).state;
+            id(nozzles).dose();
+            float psi_post = id(bus_psi).state;
+            psi_sum += psi_post - psi_pre;
+          }
+          float average_psi = psi_sum / float(number_of_reads);
+          id(calibrate_clogged_nozzle_detection_mqtt).publish_state(average_psi);
+      # Seems like I need some way of detecting when the calibration has completed.
       - mqtt.publish:
           topic: seedship/${water_supply}/bus_owner
           payload: "idle"
@@ -140,6 +153,11 @@ script:
       - lambda: |-
           float post_psi = id(bus_psi).state;
           id(psi_drop).publish_state(id(pre_psi) - post_psi);
+          //if (post_psi - id(pre_psi) < id(current_clogged_nozzle_value).state - (id(current_clogged_nozzle_value).state * 0.2))
+          //{
+          //  id(mqtt_client).publish("seedship/${water_supply}/warnings", "Warning! Nozzles for ${system} appear to be clogged.");
+          //}
+
       - mqtt.publish:
           topic: seedship/${water_supply}/bus_owner
           qos: 1
@@ -187,6 +205,19 @@ sensor:
     id: psi_drop
     #expire_after: 5 min
     force_update: true
+
+  # MQTT subscription to get current PSI Drop value
+  - platform: mqtt_subscribe
+    id: current_clogged_nozzle_value
+    topic: seedship/${system}/clogged_nozzle_detection_value
+    # TODO: If value is unset, detect it on the next request_spray?
+
+  - platform: mqtt_subscribe
+    id: calibrate_clogged_nozzle_detection_mqtt
+    topic: seedship/${system}/calibrate_clogged_nozzle_detection
+    on_value:
+      - script.execute: calibrate_clogged_nozzle_detection
+
 time:
   - platform: sntp
     #id: time
