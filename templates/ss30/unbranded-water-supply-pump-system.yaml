@@ -3,6 +3,8 @@ substitutions:
   #debug: !debug
   <<: !include templates/generated_substitutions.yaml
 
+packages:
+  package-bus: !include packages/bus.yaml
 script:
   - id: pump_system
     mode: single
@@ -181,77 +183,6 @@ script:
                     payload: "idle"
 
 
-  - id: receive_bus_request
-    mode: parallel
-    then:
-      - lambda: |-
-          json::global_json_buffer.clear();
-          std::string array_string = id(bus_requests).state;
-          JsonArray& array = json::global_json_buffer.parseArray(array_string);
-
-          array.add(id(bus_request).state);
-
-          std::string new_array_string;
-          array.printTo(new_array_string);
-          ESP_LOGW(TAG, "Array: %s (%d)\n\n", new_array_string.c_str(), array.size());
-
-          id(bus_requests).publish_state(new_array_string.c_str());
-      - script.execute: reserve_bus
-
-  - id: reserve_bus
-    mode: queued
-    then:
-      - logger.log: "Changing bus ownership."
-      - script.execute: _bus_timeout
-      - mqtt.publish:
-          topic: seedship/${system}/bus_owner
-          # TODO: Make this persist state by setting the value of bus_requests at boot via another sensor subscribed to bus_requests... Maybe persist message?
-          payload: !lambda >-
-              json::global_json_buffer.clear();
-              std::string array_string = id(bus_requests).state;
-              JsonArray& array = json::global_json_buffer.parseArray(array_string);
-
-              std::string request = array[0];
-              array.remove(0);
-
-              std::string new_array_string;
-              array.printTo(new_array_string);
-              ESP_LOGW(TAG, "Array: %s (%d)\n\n", new_array_string.c_str(), array.size());
-
-              id(bus_requests).publish_state(new_array_string.c_str());
-              return request;
-      # Need to allow for the state to actually change.
-      - delay: 1 s
-      - wait_until:
-          condition:
-            text_sensor.state:
-              id: bus
-              state: "idle"
-      - logger.log: "Finished waiting for idle"
-
-      # Clean up the timeout script if it's still running.
-      - if:
-          condition:
-              script.is_running: _bus_timeout
-          then:
-              script.stop: _bus_timeout
-
-  - id: _bus_timeout
-    then:
-        - delay:  1 min
-        - if:
-            condition:
-                not:
-                  text_sensor.state:
-                    id: bus
-                    state: "idle"
-            then:
-                - mqtt.publish:
-                    topic: seedship/${system}/warnings
-                    payload: "${system}: Bus timed out; Resetting owner to idle."
-                - mqtt.publish:
-                    topic: seedship/${system}/bus_owner
-                    payload: "idle"
 
 switch:
   # Relay 1
@@ -481,21 +412,6 @@ text_sensor:
     name: ${system_friendly} Drainage Bus Requests
     id: drainage_bus_requests
 
-  - platform: mqtt_subscribe
-    name: "${system_friendly} Bus"
-    id: bus
-    topic: seedship/${system}/bus_owner
-
-  - platform: mqtt_subscribe
-    name: "${system_friendly} Bus Requests"
-    id: bus_request
-    topic: seedship/${system}/bus_request_access
-    on_value:
-      - script.execute: receive_bus_request
-
-  - platform: template
-    name: ${system_friendly} Bus Requests
-    id: bus_requests
 
 status_led:
   pin:
