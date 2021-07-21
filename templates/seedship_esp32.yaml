@@ -57,7 +57,12 @@ sensor:
     expire_after: 5 min
     force_update: true
     lambda: |-
-        return (1 - id(shoot_zone_humidity).state/100)*610.7*pow(10.0,(7.5 * id(shoot_zone_temp).state) / (237.3 + id(shoot_zone_temp).state) )/1000;
+        if ( ! isnan( id(shoot_zone_humidity).state ) && ! isnan( id(shoot_zone_temp).state ) ) {
+          //ESP_LOGW(TAG, "Humidity %f", id(shoot_zone_humidity).state );
+          return (1 - id(shoot_zone_humidity).state/100)*610.7*pow(10.0,(7.5 * id(shoot_zone_temp).state) / (237.3 + id(shoot_zone_temp).state) )/1000;
+        } else {
+          return -1.0;
+        }
 
   # TODO: Take the temperature of the root zone. Need a water proof sensor.
   #- platform: dht
