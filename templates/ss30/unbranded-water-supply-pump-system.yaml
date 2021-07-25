@@ -4,7 +4,8 @@ substitutions:
   <<: !include templates/generated_substitutions.yaml
 
 packages:
-  package-bus: !include packages/bus.yaml
+  - package-bus: !include packages/bus.yaml
+  - package-drainage-bus: !include packages/drainage_bus.yaml
 
 script:
   - id: pump_system
@@ -159,82 +160,6 @@ script:
                 payload: "${system}: clear_pump_system timed out and had to retry."
             - script.stop: _clear_pump_system
       - logger.log: "Finished _clear_pump_system_timeout"
-
-
-  - id: receive_drainage_bus_request
-    mode: parallel
-    then:
-      - lambda: |-
-          json::global_json_buffer.clear();
-          std::string array_string = id(drainage_bus_requests).state;
-          JsonArray& array = json::global_json_buffer.parseArray(array_string);
-
-          array.add(id(drainage_bus_request).state);
-
-          std::string new_array_string;
-          array.printTo(new_array_string);
-          //ESP_LOGW(TAG, "Array: %s (%d)\n\n", new_array_string.c_str(), array.size());
-
-          id(drainage_bus_requests).publish_state(new_array_string.c_str());
-      - script.execute: reserve_drainage_bus
-
-  - id: reserve_drainage_bus
-    mode: queued
-    then:
-      - logger.log: "Changing drainage bus ownership."
-      - script.execute: _drainage_bus_timeout
-      - switch.turn_on: drainage_pump
-      - mqtt.publish:
-          topic: seedship/${system}/drainage_bus_owner
-          # TODO: Make this persist state by setting the value of bus_requests at boot via another sensor subscribed to bus_requests... Maybe persist message?
-          payload: !lambda >-
-              json::global_json_buffer.clear();
-              std::string array_string = id(drainage_bus_requests).state;
-              JsonArray& array = json::global_json_buffer.parseArray(array_string);
-
-              std::string request = array[0];
-              array.remove(0);
-
-              std::string new_array_string;
-              array.printTo(new_array_string);
-              //ESP_LOGW(TAG, "Array: %s (%d)\n\n", new_array_string.c_str(), array.size());
-
-              id(drainage_bus_requests).publish_state(new_array_string.c_str());
-              return request;
-      # Need to allow for the state to actually change.
-      - delay: 1 s
-      - wait_until:
-          condition:
-            text_sensor.state:
-              id: drainage_bus
-              state: "idle"
-      - logger.log: "Finished waiting for idle"
-
-      # Clean up the timeout script if it's still running.
-      - if:
-          condition:
-              script.is_running: _drainage_bus_timeout
-          then:
-              script.stop: _drainage_bus_timeout
-      - switch.turn_off: drainage_pump
-
-  - id: _drainage_bus_timeout
-    then:
-        - delay: 14 min
-        - if:
-            condition:
-                not:
-                  text_sensor.state:
-                    id: drainage_bus
-                    state: "idle"
-            then:
-                - mqtt.publish:
-                    topic: seedship/${system}/warnings
-                    payload: "${system}: Drainage bus timed out; Resetting owner to idle."
-                - mqtt.publish:
-                    topic: seedship/${system}/drainage_bus_owner
-                    payload: "idle"
-
 
 
 switch:
@@ -449,32 +374,15 @@ text_sensor:
     #id: warnings
     topic: seedship/${system}/warnings
 
-  - platform: mqtt_subscribe
-    name: "${system_friendly} Drainage Bus"
-    id: drainage_bus
-    topic: seedship/${water_supply}/drainage_bus_owner
-
-  - platform: mqtt_subscribe
-    name: "${system_friendly} Drainage Bus Requests"
-    id: drainage_bus_request
-    topic: seedship/${system}/drainage_bus_request_access
-    on_value:
-      - script.execute: receive_drainage_bus_request
-
-  - platform: template
-    name: ${system_friendly} Drainage Bus Requests
-    id: drainage_bus_requests
-
 
 status_led:
   pin:
     number: GPIO2
 
+
 esphome:
   <<: !include templates/esphome/esp01_1m.yaml
-  on_boot:
-    then:
-      - script.execute: _drainage_bus_timeout
+
 
 wifi: !include secrets/wifi.yaml
 mqtt: !include templates/mqtt/mqtt.yaml
