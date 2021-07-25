@@ -3,33 +3,33 @@
 # Name of bus
 # Script to run when we're the owner
 
-globals:
-  - id: pre_psi
-    type: float
-    restore_value: no
-    initial_value: '0'
-
-  - id: bus_psi_increasing
-    type: boolean
-    restore_value: no
-    initial_value: "false"
+#globals:
+#  - id: pre_psi
+#    type: float
+#    restore_value: no
+#    initial_value: '0'
+#
+#  - id: bus_psi_increasing
+#    type: boolean
+#    restore_value: no
+#    initial_value: "false"
 
 script:
-  - id: receive_bus_request
+  - id: receive_resource_request
     mode: parallel
     then:
       - lambda: |-
           json::global_json_buffer.clear();
-          std::string array_string = id(bus_queue).state;
+          std::string array_string = id(resource_queue).state;
           JsonArray& array = json::global_json_buffer.parseArray(array_string);
 
-          array.add(id(bus_request).state);
+          array.add(id(resource_request).state);
 
           std::string new_array_string;
           array.printTo(new_array_string);
           ESP_LOGW(TAG, "Array: %s (%d)\n\n", new_array_string.c_str(), array.size());
 
-          id(bus_queue).publish_state(new_array_string.c_str());
+          id(resource_queue).publish_state(new_array_string.c_str());
       - script.execute: reserve_bus
 
   - id: reserve_bus
@@ -42,7 +42,7 @@ script:
           # TODO: Make this persist state by setting the value of bus_queue at boot via another sensor subscribed to bus_queue... Maybe persist message?
           payload: !lambda >-
               json::global_json_buffer.clear();
-              std::string array_string = id(bus_queue).state;
+              std::string array_string = id(resource_queue).state;
               JsonArray& array = json::global_json_buffer.parseArray(array_string);
 
               std::string request = array[0];
@@ -52,39 +52,39 @@ script:
               array.printTo(new_array_string);
               ESP_LOGW(TAG, "Array: %s (%d)\n\n", new_array_string.c_str(), array.size());
 
-              id(bus_queue).publish_state(new_array_string.c_str());
+              id(resource_queue).publish_state(new_array_string.c_str());
               return request;
       # Need to allow for the state to actually change.
       - delay: 1 s
       - wait_until:
           condition:
             text_sensor.state:
-              id: bus
+              id: current_step
               state: "idle"
       - logger.log: "Finished waiting for idle"
 
       # Clean up the timeout script if it's still running.
       - if:
           condition:
-              script.is_running: _bus_timeout
+              script.is_running: _resource_timeout
           then:
-              script.stop: _bus_timeout
+              script.stop: _resource_timeout
 
-  - id: _bus_timeout
+  - id: _resource_timeout
     then:
-        - delay:  1 min
+        - delay:  10 min
         - if:
             condition:
                 not:
                   text_sensor.state:
-                    id: bus
+                    id: current_step
                     state: "idle"
             then:
                 - mqtt.publish:
                     topic: seedship/${system}/warnings
-                    payload: "${system}: Bus timed out; Resetting owner to idle."
+                    payload: "${system}: Resource timed out; Resetting owner to idle."
                 - mqtt.publish:
-                    topic: seedship/${system}/bus_owner
+                    topic: seedship/${system}/current_step
                     payload: "idle"
 
 
@@ -95,17 +95,18 @@ text_sensor:
     topic: seedship/${system}/bus_owner
 
   - platform: mqtt_subscribe
-    name: "${system_friendly} Bus Request"
-    id: bus_request
-    topic: seedship/${system}/bus_request_access
+    name: "${system_friendly} Resource Request"
+    id: resource_request
+    topic: seedship/${system}/request_resource
     on_value:
-      - script.execute: receive_bus_request
+      - script.execute: receive_resource_request
 
   - platform: template
-    name: ${system_friendly} Bus Queue
-    id: bus_queue
+    name: ${system_friendly} Resource Queue
+    id: resource_queue
+
 
 esphome:
   on_boot:
     then:
-      - script.execute: _bus_timeout
+      - script.execute: _resource_timeout
