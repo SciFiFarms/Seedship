@@ -4,176 +4,23 @@ substitutions:
   <<: !include templates/generated_substitutions.yaml
 
 packages:
-  - package-bus: !include packages/bus.yaml
-  - package-drainage-bus: !include packages/drainage_bus.yaml
-
-script:
-  - id: pump_system
-    mode: single
-    then:
-      - logger.log: "Starting Pump System"
-      - switch.turn_off: water_line
-      - lambda: |-
-          id(water).dose();
-      - wait_until:
-          switch.is_off: water
-      - script.execute: repressurize
-      - script.wait: repressurize
-
-
-  - id: repressurize
-    mode: queued
-    then:
-      - if:
-          condition:
-              - lambda: |-
-                  return id(bus_psi)->state >= 95;
-          then:
-              - lambda: |-
-                  id(bus_psi_increasing) = false;
-              - script.stop: _repressurize_timeout
-              - logger.log: "Finished pressurizing."
-          else:
-              - logger.log: "Repressurizing."
-              - if:
-                  condition:
-                      - not:
-                        - script.is_running: _repressurize_timeout
-                      - lambda: |-
-                          return ! id(bus_psi_increasing);
-                  then:
-                      - script.execute: clear_pump_system
-                      - script.wait: clear_pump_system
-                      - script.execute: _repressurize_timeout
-
-              - lambda: |-
-                  id(pre_psi) = id(bus_psi).state;
-                  id(water_line).dose();
-              - delay: !lambda |-
-                  return id(discharge).get_dosage() - 1000;
-              #- wait_until:
-              #    switch.is_off: water_line
-              - if:
-                  condition:
-                      # diff is increasing
-                      - lambda: |-
-                          float post_psi = id(bus_psi).state;
-                          // TODO: This should probably be a little bigger than 0?
-                          ESP_LOGW(TAG, "PSI Increasing: %f, %f, %f ", id(pre_psi), post_psi, id(pre_psi) - post_psi);
-                          id(bus_psi_increasing) = ( post_psi - id(pre_psi) > 1 );
-
-                          ESP_LOGW(TAG, "PSI Increasing: %s ", (id(bus_psi_increasing))?"true":"false");
-                          return id(bus_psi_increasing);
-                  then:
-                      - script.stop: _repressurize_timeout
-                      - script.execute: _repressurize_timeout
-              - script.execute: repressurize
-
-  - id: _repressurize_timeout
-    mode: single
-    then:
-      - delay: 2 min
-      - logger.log: "_repressurize_timeout delay completed."
-      - if:
-          condition:
-            script.is_running: repressurize
-          then:
-            - logger.log: "repressurize timed out."
-            - mqtt.publish:
-                topic: seedship/${system}/warnings
-                payload: "${system}: repressurize timed out and had to retry."
-            - script.stop: repressurize
-      - logger.log: "Finished _repressurize_timeout"
-
-  - id: clear_pump_system
-    mode: single
-    then:
-      - logger.log: Start clear_pump_system
-      - script.execute: _clear_pump_system
-      - wait_until:
-          not:
-            script.is_running: _clear_pump_system
-      - logger.log: Finished initial wait for clear_pump_system
-      - if:
-          condition:
-            lambda:
-                return id(bus_psi)->state - 5 >= id(pump_psi)->state || id(pump_psi)->state >= 95;
-          then:
-            - mqtt.publish:
-                topic: seedship/${system}/warnings
-                payload: "${system}: clear_pump_system timed out and had to retry."
-            - script.execute: _clear_pump_system
-            - wait_until:
-                not:
-                  script.is_running: _clear_pump_system
-            - if:
-                condition:
-                  lambda:
-                      return id(bus_psi)->state - 5 >= id(pump_psi)->state || id(pump_psi)->state >= 95;
-                then:
-                  - mqtt.publish:
-                      topic: seedship/${system}/warnings
-                      payload: "${system}: TWICE clear_pump_system has timed out and had to retry."
-                  - script.execute: _clear_pump_system
-                  - wait_until:
-                      not:
-                        script.is_running: _clear_pump_system
-                  - if:
-                      condition:
-                        lambda:
-                            return id(bus_psi)->state - 5 >= id(pump_psi)->state || id(pump_psi)->state >= 95;
-                      then:
-                        - mqtt.publish:
-                            topic: seedship/${system}/warnings
-                            payload: "${system}: THRICE clear_pump_system has timed out and had to retry."
-      - logger.log: Finished final wait for clear_pump_system
-
-
-  # I prepended "_" because it should be thought of as an internal call.
-  # Error handling and timeout detection is handled higher up the stack.
-  - id: _clear_pump_system
-    mode: single
-    then:
-      - lambda: |-
-          id(discharge).dose();
-      - wait_until:
-          switch.is_off: discharge
-      - script.execute: _clear_pump_system_timeout
-      - wait_until:
-          lambda:
-              return id(bus_psi)->state - 5 < id(pump_psi)->state;
-      - script.stop: _clear_pump_system_timeout
-
-  # Stop _clear_pump when the timeout expires.
-  - id: _clear_pump_system_timeout
-    mode: single
-    then:
-      - delay: 2 min
-      - logger.log: "_clear_pump_system_timeout timeout done"
-      - if:
-          condition:
-            script.is_running: _clear_pump_system
-          then:
-            - logger.log: "_clear_system_pump timed out."
-            - mqtt.publish:
-                topic: seedship/${system}/warnings
-                payload: "${system}: clear_pump_system timed out and had to retry."
-            - script.stop: _clear_pump_system
-      - logger.log: "Finished _clear_pump_system_timeout"
+  package-bus: !include packages/bus.yaml
+  package-drainage-bus: !include packages/drainage_bus.yaml
+  package-water-supply-resource: !include packages/water_supply_resource.yaml
 
 
 switch:
   # Relay 1
-  # Peristaltic Pump
+  # Solenoid.
   - platform: dosage
-    name: "${system_friendly} Clean Water"
-    command_topic: seedship/${system}/clean_water
+    name: "${system_friendly} RO Water"
+    command_topic: seedship/${system}/ro_water
     pin:
       number: GPIO15
       mode: OUTPUT
-    id: water
+    id: ro_water
     restore_mode: ALWAYS_OFF
-    dosage: 30 min
+    dosage: 2 min
 
   # Relay 2
   # Solenoid.
@@ -190,24 +37,24 @@ switch:
   # Relay 3
   # Solenoid.
   - platform: dosage
-    name: "${system_friendly} Water Line"
-    command_topic: seedship/${system}/water_line
+    name: "${system_friendly} Strawberry Water Line"
+    command_topic: seedship/${system}/strawberry_water_line
     pin:
       number: GPIO14
       mode: OUTPUT
-    id: water_line
+    id: strawberry_water_line
     restore_mode: ALWAYS_OFF
     dosage: 30 s
 
   # Relay 4
   - platform: dosage
-    name: "${system_friendly} Drainage Pump"
-    command_topic: seedship/${system}/drainage_pump
+    name: "${system_friendly} Water Pump"
+    command_topic: seedship/${system}/water_pump
     pin:
       number: GPIO12
-    id: drainage_pump
+    id: water_pump
     restore_mode: ALWAYS_OFF
-    dosage: 10 min
+    dosage: 5 min
 
   # Relay USB
   - platform: gpio
@@ -269,7 +116,7 @@ binary_sensor:
           - OFF for at least 0.5s
         then:
           - logger.log: "Single-Clicked"
-          - switch.turn_off: water_line
+          - switch.turn_off: strawberry_water_line
           - lambda: |-
               id(discharge).dose();
 
@@ -281,55 +128,19 @@ sensor:
     id: bus_psi
     topic: seedship/${system}/bus_psi
     on_value:
-      - if:
-          condition:
-              and:
-                  - sensor.in_range:
-                      id: bus_psi
-                      # This needs to be slightly below the turn on point for the pump.
-                      below: 72
-                  - switch.is_off: water_line
-                  - switch.is_off: water
-                  - not:
-                    - script.is_running: pump_system
-                  - not:
-                    - script.is_running: repressurize
-                  - not:
-                    - script.is_running: clear_pump_system
-                  - lambda: |-
-                      return id(mode).state == $MODE_RUNNING;
-                  - mqtt.connected:
-          then:
-            - logger.log: "Opening water_line"
-            - script.execute: repressurize
-            - script.wait: repressurize
-            - logger.log: "water_line closed. "
-
-            # If it's not to pressure by now, a new batch is needed.
-            - if:
-                condition:
-                  and:
-                    - sensor.in_range:
-                        below: 90
-                        id: bus_psi
-                    - lambda: |-
-                        return id(mode).state == $MODE_RUNNING;
-                then:
-                  - mqtt.publish:
-                      # TODO: This should be a sensor reserving the mixing system.
-                      topic: seedship/${system}/strawberries
-                      payload: 1
 
       - if:
           condition:
               and:
                   - sensor.in_range:
                       id: bus_psi
-                      below: 64
+                      below: 70
+                  - sensor.in_range:
+                      id: ro_psi
+                      # TODO: This is likely too high.
+                      above: 80
                   - not:
-                      script.is_running: pump_system
-                  - not:
-                      script.is_running: repressurize
+                      script.is_running: make_batch_of_water
                   - lambda: |-
                       return id(mode).state == $MODE_RUNNING;
                   - mqtt.connected:
@@ -337,13 +148,10 @@ sensor:
             - mqtt.publish:
                 topic: seedship/${system}/strawberries
                 payload: 1
-            - logger.log: "Starting strawberry delay"
-            - delay: 40 min
-            - logger.log: "Finished strawberry delay"
 
   - platform: mqtt_subscribe
-    id: pump_psi
-    topic: seedship/${system}/pump_psi
+    id: ro_psi
+    topic: seedship/${system}/ro_psi
 
   - platform: mqtt_subscribe
     id: strawberry
@@ -351,12 +159,12 @@ sensor:
     on_value:
       - if:
           condition:
-            - script.is_running: pump_system
+            - script.is_running: make_batch_of_water
           then:
-            - logger.log: Already pumping water. Exiting.
+            - logger.log: Already making water. Exiting.
           else:
-            - logger.log: Running pump_system
-            - script.execute: pump_system
+            - logger.log: Running make_batch_of_water
+            - script.execute: make_batch_of_water
 
   - !include templates/sensor/seedship_mode_internal.yaml
   - platform: wifi_signal

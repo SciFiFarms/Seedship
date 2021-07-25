@@ -15,6 +15,59 @@
 #    initial_value: "false"
 
 script:
+  - id: make_batch_of_water
+    mode: parallel
+    then:
+      - logger.log: "Starting to make a batch of water."
+      - mqtt.publish:
+          topic: seedship/${system}/request_resource
+          payload: "strawberry"
+      - delay: 1s
+      - wait_until:
+          condition:
+            text_sensor.state:
+              id: current_step
+              state: "idle"
+      - logger.log: "Finished making batch of water."
+
+  - id: add_water
+    mode: single
+    then:
+      - lambda: |-
+          id(ro_water).dose();
+      - wait_until:
+          or:
+            - switch.is_off: ro_water
+            - lambda: |-
+                return id(ro_psi)->state < 5;
+      - lambda: |-
+          id(ro_water).cancel_dose();
+      - mqtt.publish:
+          topic: seedship/${system}/current_step
+          payload: "strawberry_fertigation"
+
+  - id: pressurize_bus
+    mode: single
+    then:
+      - lambda: |-
+          id(water_pump).dose();
+          id(discharge).dose();
+      - delay: !lambda |-
+          return id(discharge).get_dosage() - 1000;
+      - lambda: |-
+          id(strawberry_water_line).dose();
+      - wait_until:
+          condition:
+              or:
+                - switch.is_off: water_pump
+                - switch.is_off: strawberry_water_line
+      - lambda: |-
+          id(water_pump).cancel_dose();
+          id(strawberry_water_line).cancel_dose();
+      - mqtt.publish:
+          topic: seedship/${system}/current_step
+          payload: "idle"
+
   - id: receive_resource_request
     mode: parallel
     then:
@@ -30,15 +83,15 @@ script:
           ESP_LOGW(TAG, "Array: %s (%d)\n\n", new_array_string.c_str(), array.size());
 
           id(resource_queue).publish_state(new_array_string.c_str());
-      - script.execute: reserve_bus
+      - script.execute: reserve_resource
 
-  - id: reserve_bus
+  - id: reserve_resource
     mode: queued
     then:
-      - logger.log: "Changing bus ownership."
-      - script.execute: _bus_timeout
+      - logger.log: "Changing resource ownership."
+      - script.execute: _resource_timeout
       - mqtt.publish:
-          topic: seedship/${system}/bus_owner
+          topic: seedship/${system}/current_step
           # TODO: Make this persist state by setting the value of bus_queue at boot via another sensor subscribed to bus_queue... Maybe persist message?
           payload: !lambda >-
               json::global_json_buffer.clear();
@@ -89,10 +142,25 @@ script:
 
 
 text_sensor:
-  - platform: mqtt_subscribe
-    name: "${system_friendly} Bus"
-    id: bus
-    topic: seedship/${system}/bus_owner
+  - name: "${system_friendly} Current Step"
+    platform: mqtt_subscribe
+    id: current_step
+    topic: seedship/${system}/current_step
+    on_value:
+      - if:
+          condition:
+              - text_sensor.state:
+                  id: current_step
+                  state: "strawberry"
+          then:
+              - script.execute: add_water
+      - if:
+          condition:
+              - text_sensor.state:
+                  id: current_step
+                  state: "pressurize_bus"
+          then:
+              - script.execute: pressurize_bus
 
   - platform: mqtt_subscribe
     name: "${system_friendly} Resource Request"
