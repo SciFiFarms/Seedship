@@ -36,10 +36,10 @@ sensor:
 
   - platform: adc
     pin: GPIO34
-    name: $system_friendly Pump PSI
-    state_topic: seedship/${system}/pump_psi
+    name: $system_friendly RO PSI
+    state_topic: seedship/${system}/ro_psi
     icon: "mdi:water-pump"
-    id: pump_psi
+    id: ro_psi
     update_interval: 0.3s
     expire_after: 60s
     force_update: true
@@ -51,11 +51,11 @@ sensor:
           send_first_at: 12
       - calibrate_linear:
           raw_sensor:
-            name: $system_friendly Pump PSI Raw
-            id: pump_psi_raw
+            name: $system_friendly RO Pump PSI Raw
+            id: ro_psi_raw
           calibration_sensor:
-            name: $system_friendly Pump PSI Calibration
-            topic: seedship/${system}/pump_psi_calibration
+            name: $system_friendly RO Pump PSI Calibration
+            topic: seedship/${system}/ro_psi_calibration
           datapoints:
             # 200 PSI sensor
             - 0.5 -> 0.0
